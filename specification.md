@@ -120,7 +120,7 @@ Ez a szekció a fejlesztés során felmerült specifikus technikai kihívásokat
 
 ### 4. Tailwind CSS Formázási Probléma
 - **Jelenség:** A Tailwind CSS nem működött megfelelően, csak plaintext jelent meg formázás nélkül.
-- **Oka:**
+- **Oka:** 
   - Hibás Tailwind import direktíva volt a `globals.css` fájlban (`@import "tailwindcss"` helyett a megfelelő direktívák)
   - A `postcss.config.mjs` nem a standard Tailwind CSS plugint használta
   - Hiányzott az `autoprefixer` csomag
@@ -129,4 +129,20 @@ Ez a szekció a fejlesztés során felmerült specifikus technikai kihívásokat
   1. Javítottuk a `globals.css` fájlt a helyes Tailwind direktívákkal (`@tailwind base/components/utilities`)
   2. Frissítettük a `postcss.config.mjs` fájlt a standard beállításokkal
   3. Telepítettük az `autoprefixer` és `@tailwindcss/typography` csomagokat
-  4. Beállítottuk a typography plugint a `tailwind.config.ts` fájlban 
+  4. Beállítottuk a typography plugint a `tailwind.config.ts` fájlban
+
+### 5. TipTap Szövegszerkesztő Integráció
+- **Cél:** A generált blog tartalmak szerkeszthetővé tétele egy modern, WYSIWYG szerkesztővel.
+- **Megvalósítás:**
+  - Telepítettük a TipTap React csomagokat és extension-öket (starter-kit, link, image, text-align, highlight, table)
+  - Létrehoztunk egy `TipTapEditor` komponenst testreszabott menüsávval
+  - Integráltuk a blog generátor formba, szerkesztés/előnézet mód váltási lehetőséggel
+  - Hozzáadtuk a HTML formátumú másolás funkciót
+  - A markdown-to-HTML konverziót a `marked` csomag segítségével oldottuk meg
+- **Funkciók:**
+  - Szöveg formázás (félkövér, dőlt, áthúzott, kiemelés)
+  - Címsorok (H1, H2, H3)
+  - Listák (számozott, számozatlan)
+  - Szöveg igazítás (bal, közép, jobb)
+  - Visszavonás/mégis funkciók
+  - HTML export a vágólapra 

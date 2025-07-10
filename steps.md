@@ -20,8 +20,8 @@ Ez a dokumentum a projekt fejlesztési lépéseit és azok aktuális állapotát
 
 ## Fázis 3: Tartalomgenerátor Modulok (Folyamatban)
 - [x] Blog generátor modul felületének (UI) létrehozása
-- [ ] ChatGPT API integráció a szöveggeneráláshoz
-- [ ] Modern, beágyazható szövegszerkesztő integrálása
+- [x] ChatGPT API integráció a szöveggeneráláshoz
+- [x] Modern, beágyazható szövegszerkesztő (TipTap) integrálása
 - [ ] SEO pontozó rendszer alapjainak kidolgozása a `content_guides.md` alapján
 - [ ] Generált tartalmak mentése az adatbázisba
 - [ ] Blog cikkek listázása, státuszkezelése
