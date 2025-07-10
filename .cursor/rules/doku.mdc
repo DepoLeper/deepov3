@@ -1,0 +1,6 @@
+---
+description:Mindig olvasd át az összed .md kiterjesztésű fájlt mielőtt bármilyen módosítást új kód írást végrehajtanál
+globs:
+alwaysApply: true
+---
+Mindig olvasd át az összed .md kiterjesztésű fájlt mielőtt bármilyen módosítást új kód írást végrehajtanál
