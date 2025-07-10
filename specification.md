@@ -71,4 +71,25 @@ Egy olyan online eszközt hozunk létre a T-DEPO (www.t-depo.hu) marketingesei s
     - Emoji használat és javaslatok.
 
 ### Social Media Poszt Generátor
-- **Egyszerűsített működés:** Téma megadása után a generátor a platformok (Facebook, Instagram) specifikációit és karakterlimitjeit figyelembe véve hoz létre hirdetési szövegeket. 
+- **Egyszerűsített működés:** Téma megadása után a generátor a platformok (Facebook, Instagram) specifikációit és karakterlimitjeit figyelembe véve hoz létre hirdetési szövegeket.
+
+---
+
+## Technológiai Stack
+
+A projektet a következő technológiák felhasználásával építjük fel, a megbeszéltek alapján:
+
+- **Keretrendszer: Next.js (React alapokon)**
+  - **Indoklás:** Modern, SEO-barát keretrendszer, ami gyors és hatékony webalkalmazások készítését teszi lehetővé. Ideális választás a projekt céljaihoz.
+
+- **Felhasználói Felület (UI): Tailwind CSS**
+  - **Indoklás:** Egy "utility-first" CSS keretrendszer, ami lehetővé teszi a gyors, egyedi és reszponzív designok építését, beleértve a kért "glassmorphism" stílust is.
+
+- **Adatbázis: SQLite**
+  - **Indoklás:** A projekt kezdeti fázisában egy egyszerű, fájl-alapú adatbázist használunk. Ez meggyorsítja a fejlesztést, nem igényel külön telepítést és karbantartást. Tökéletesen elegendő a kezdeti felhasználói terheléshez, és később, szükség esetén, könnyen cserélhető egy robusztusabb megoldásra (pl. PostgreSQL).
+
+- **Authentikáció: NextAuth.js**
+  - **Indoklás:** Biztonságos és rugalmas, kifejezetten a Next.js-hez fejlesztett authentikációs könyvtár, ami minden szükséges funkciót (bejelentkezés, jogosultságkezelés) lefed.
+
+- **Szövegszerkesztő: TipTap**
+  - **Indoklás:** Modern, ingyenes és könnyen testreszabható szövegszerkesztő komponens a generált tartalmak formázásához. 
