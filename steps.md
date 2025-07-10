@@ -18,8 +18,8 @@ Ez a dokumentum a projekt fejlesztési lépéseit és azok aktuális állapotát
 - [x] Védett útvonalak létrehozása (pl. csak bejelentkezett felhasználók számára elérhető oldalak)
 - [x] Admin felület alapjainak létrehozása (UI a felhasználók listázásához és meghívásához)
 
-## Fázis 3: Tartalomgenerátor Modulok
-- [ ] Blog generátor modul felületének (UI) létrehozása
+## Fázis 3: Tartalomgenerátor Modulok (Folyamatban)
+- [x] Blog generátor modul felületének (UI) létrehozása
 - [ ] ChatGPT API integráció a szöveggeneráláshoz
 - [ ] Modern, beágyazható szövegszerkesztő integrálása
 - [ ] SEO pontozó rendszer alapjainak kidolgozása a `content_guides.md` alapján
