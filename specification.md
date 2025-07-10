@@ -92,4 +92,28 @@ A projektet a következő technológiák felhasználásával építjük fel, a m
   - **Indoklás:** Biztonságos és rugalmas, kifejezetten a Next.js-hez fejlesztett authentikációs könyvtár, ami minden szükséges funkciót (bejelentkezés, jogosultságkezelés) lefed.
 
 - **Szövegszerkesztő: TipTap**
-  - **Indoklás:** Modern, ingyenes és könnyen testreszabható szövegszerkesztő komponens a generált tartalmak formázásához. 
+  - **Indoklás:** Modern, ingyenes és könnyen testreszabható szövegszerkesztő komponens a generált tartalmak formázásához.
+
+---
+
+## Megvalósítási Megjegyzések és Hibaelhárítás
+
+Ez a szekció a fejlesztés során felmerült specifikus technikai kihívásokat és az azokra alkalmazott megoldásokat dokumentálja.
+
+### 1. Git és PowerShell Működési Problémák
+- **Jelenség:** Windows PowerShell környezetben a `git add`, `git commit` és `git push` parancsok gyakran "elakadnak", nem adnak azonnali visszajelzést, vagy megszakadnak.
+- **Megoldás:** A parancsok a háttérben általában sikeresen lefutnak. A sikerességet mindig egy független ellenőrző paranccsal (`git status` vagy `git remote show origin`) erősítjük meg, ahelyett, hogy a parancs visszajelzésére várnánk. A `&&` operátor használatát a parancsok összekapcsolására kerüljük, helyette külön-külön futtatjuk őket.
+
+### 2. NextAuth.js JWT Session Hiba (`decryption operation failed`)
+- **Jelenség:** Sikeres bejelentkezés után a felhasználó a főoldalra érkezve azonnal kijelentkezik. A szerver logjában `[next-auth][error][JWT_SESSION_ERROR] decryption operation failed` hibaüzenet látható.
+- **Oka:** A hiba arra utal, hogy a session token (JWT) titkosításához és visszafejtéséhez használt `AUTH_SECRET` kulcs nem konzisztens. Ezt a Next.js belső gyorsítótára (`.next` mappa) okozta, ami egy régi, hibás `.env` konfigurációt használt.
+- **Megoldás:** A probléma végleges megoldása egy "kemény újraindítás":
+  1. A fejlesztői szerver leállítása (`taskkill /F /IM node.exe`).
+  2. A `.next` mappa teljes törlése.
+  3. A szerver újraindítása (`npm run dev`), ami tiszta gyorsítótárral, a helyes `.env` fájl beolvasásával indul.
+  4. A böngészőben a `localhost`-hoz tartozó sütik törlése a tesztelés előtt.
+
+### 3. Prisma Adatbázis Seedelés Windows Alatt
+- **Jelenség:** A `npx prisma db seed` parancs hibával leállt, hivatkozva a `ts-node` parancs értelmezési problémáira a `package.json`-ben (`SyntaxError: Expected property name or '}' in JSON` vagy `TypeError: Unknown file extension ".ts"`).
+- **Oka:** A Windows parancssor (PowerShell) eltérően kezeli az idézőjeleket és a Node.js modulrendszereket, mint a Linux-alapú rendszerek.
+- **Végső Megoldás:** Egy ideiglenes `temp_seed.js` script létrehozása, ami a `child_process` modul segítségével, programatikusan futtatja a `ts-node` parancsot a helyes beállításokkal. Ez a módszer kikerüli a parancssor-értelmezési hibákat. A futtatás után a `temp_seed.js` fájlt töröljük. 
