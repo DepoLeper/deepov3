@@ -1,7 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
-import { useState } from 'react';
+import { useActionState, useState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { generateBlogPost, FormState } from './actions';
 import ReactMarkdown from 'react-markdown';
 
@@ -33,7 +33,7 @@ export default function BlogGeneratorForm() {
     generatedContent: '',
   };
 
-  const [state, formAction] = useFormState(generateBlogPost, initialState);
+  const [state, formAction] = useActionState(generateBlogPost, initialState);
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
