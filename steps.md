@@ -2,17 +2,20 @@
 
 Ez a dokumentum a projekt fejlesztési lépéseit és azok aktuális állapotát követi.
 
-## Fázis 1: Tervezés és Előkészületek (Folyamatban)
+## Fázis 1: Tervezés és Előkészületek (Befejezve)
 - [x] Projekt-specifikáció és szabályok értelmezése
 - [x] Alap dokumentációs fájlok létrehozása (`specification.md`, `documentations.md`, `content_guides.md`, `steps.md`)
-- [ ] Technológiai stack megbeszélése és véglegesítése
-- [ ] Szükséges API kulcsok és hozzáférések összegyűjtése (`.env` fájl létrehozása)
+- [x] Technológiai stack megbeszélése és véglegesítése
+- [x] Szükséges API kulcsok és hozzáférések összegyűjtése (`.env` fájl létrehozása)
 
-## Fázis 2: Alaprendszer és Felhasználókezelés
-- [ ] Next.js projekt inicializálása Tailwind CSS-sel
-- [ ] Adatbázis séma megtervezése (felhasználók, cikkek, stb.)
-- [ ] Bejelentkezési rendszer implementálása (NextAuth.js)
-- [ ] Felhasználói szerepkörök (admin, tag) és jogosultságok kialakítása
+## Fázis 2: Alaprendszer és Felhasználókezelés (Folyamatban)
+- [x] Next.js projekt inicializálása Tailwind CSS-sel
+- [x] Adatbázis séma megtervezése (felhasználók, cikkek, stb.)
+- [x] Bejelentkezési rendszer implementálása (NextAuth.js, SQLite, Prisma)
+- [x] Első admin felhasználó létrehozása
+- [x] Bejelentkezési és kijelentkezési folyamat tesztelése és hibajavítás
+- [ ] Felhasználói szerepkörök (admin, tag) és jogosultságok kialakítása az alkalmazásban
+- [ ] Védett útvonalak létrehozása (pl. csak bejelentkezett felhasználók számára elérhető oldalak)
 - [ ] Admin felület a felhasználók meghívására és kezelésére
 
 ## Fázis 3: Tartalomgenerátor Modulok
