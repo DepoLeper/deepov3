@@ -14,8 +14,8 @@ Ez a dokumentum a projekt fejlesztési lépéseit és azok aktuális állapotát
 - [x] Bejelentkezési rendszer implementálása (NextAuth.js, SQLite, Prisma)
 - [x] Első admin felhasználó létrehozása
 - [x] Bejelentkezési és kijelentkezési folyamat tesztelése és hibajavítás
-- [ ] Felhasználói szerepkörök (admin, tag) és jogosultságok kialakítása az alkalmazásban
-- [ ] Védett útvonalak létrehozása (pl. csak bejelentkezett felhasználók számára elérhető oldalak)
+- [x] Felhasználói szerepkörök (admin, tag) és jogosultságok kialakítása az alkalmazásban
+- [x] Védett útvonalak létrehozása (pl. csak bejelentkezett felhasználók számára elérhető oldalak)
 - [ ] Admin felület a felhasználók meghívására és kezelésére
 
 ## Fázis 3: Tartalomgenerátor Modulok
