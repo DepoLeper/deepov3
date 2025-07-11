@@ -10,17 +10,20 @@ export default async function Header() {
     <header className="bg-gray-800 bg-opacity-30 backdrop-blur-lg text-white p-4 shadow-lg sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/" className="text-xl font-bold">
-          Deepo AI Tool
+          DeepO - T-DEPO AI
         </Link>
         <div className="flex items-center gap-4">
           {session && (
             <>
+              <Link href="/chat" className="hover:text-blue-400 transition-colors font-medium">
+                💬 Chat DeepO-val
+              </Link>
               <Link href="/blog/generate" className="hover:text-blue-400 transition-colors">
-                Blog Generátor
+                📝 Blog Generátor
               </Link>
               {session.user?.role === 'admin' && (
                 <Link href="/admin" className="hover:text-blue-400 transition-colors">
-                  Admin
+                  ⚙️ Admin
                 </Link>
               )}
               <LogoutButton />
