@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     
     console.log(`🎯 Végleges actualUserId: ${actualUserId}`);
 
-    // SimpleHybridController v4.0 használata (Persistent Memory)
+    // SimpleHybridController v5.0 használata (Persistent Memory + Unas API)
     const hybridController = new SimpleHybridController();
     const result = await hybridController.processMessage(
       actualUserId,
@@ -99,6 +99,8 @@ export async function POST(request: NextRequest) {
         metadata: {
           memoryUsed: false,
           contextUsed: false,
+          unasUsed: false,
+          productsFound: 0,
           timestamp: new Date().toISOString(),
           processingTime: 0
         }
@@ -113,14 +115,15 @@ export async function GET() {
   try {
     return NextResponse.json({
       status: 'ok',
-      agent: 'SimpleHybridController v4.0 (DeepO)',
+      agent: 'SimpleHybridController v5.0 (DeepO)',
       timestamp: new Date().toISOString(),
-      version: '4.0.0-persistent-memory',
+      version: '5.0.0-unas-integration',
       components: [
         'OpenAI Agents SDK',
         'PersistentMemoryManager (Prisma + SQLite)',
         'SimpleContextLoader (Content Guides)',
-        'Hibrid Cache + Database architektúra'
+        'UnasContextLoader (Webáruház termékadatok) - ÚJ!',
+        'Hibrid Cache + Database + Termékadatok architektúra'
       ]
     });
   } catch (error) {
