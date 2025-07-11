@@ -56,16 +56,10 @@ export class SimpleHybridController {
       const combinedContext = this.buildCombinedContext(memoryResult, contextResult);
       
       // 4. OpenAI SDK hívás a kombinált kontextussal
-      const agentResponse = await runDeepOAgent([
-        {
-          role: 'system',
-          content: `Te DeepO vagy, a T-DEPO intelligens marketing asszisztense. ${combinedContext}`
-        },
-        {
-          role: 'user',
-          content: message
-        }
-      ]);
+      // DeepO agent kontextussal kiegészített üzenet
+      const contextualizedMessage = `${combinedContext}\n\nUser üzenet: ${message}`;
+      
+      const agentResponse = await runDeepOAgent(contextualizedMessage, 'main');
       
       // 5. Válasz feldolgozása
       const response = this.extractResponse(agentResponse);
@@ -152,20 +146,37 @@ export class SimpleHybridController {
    */
   private extractResponse(agentResponse: any): string {
     try {
+      console.log(`🔍 Agent response debugging:`, JSON.stringify(agentResponse, null, 2));
+      
+      // runDeepOAgent válasz struktúra kezelése
+      if (agentResponse && agentResponse.success && agentResponse.response) {
+        console.log(`✅ runDeepOAgent sikeres válasz: ${agentResponse.response.substring(0, 100)}...`);
+        return agentResponse.response;
+      }
+      
+      // runDeepOAgent hiba kezelése
+      if (agentResponse && !agentResponse.success && agentResponse.error) {
+        console.log(`❌ runDeepOAgent hiba: ${agentResponse.error}`);
+        return `Hiba történt: ${agentResponse.error}`;
+      }
+      
+      // Legacy OpenAI SDK válasz struktúrák
       if (agentResponse && agentResponse.messages && agentResponse.messages.length > 0) {
         const lastMessage = agentResponse.messages[agentResponse.messages.length - 1];
         return lastMessage?.content || 'Nincs válasz';
       }
       
-      // Alternatív struktúra ellenőrzése
+      // String válasz
       if (typeof agentResponse === 'string') {
         return agentResponse;
       }
       
+      // Content property
       if (agentResponse?.content) {
         return agentResponse.content;
       }
       
+      console.log(`❌ Ismeretlen válasz struktúra:`, agentResponse);
       return 'Nincs értelmezhető válasz';
       
     } catch (error) {

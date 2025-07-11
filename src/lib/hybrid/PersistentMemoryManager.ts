@@ -28,7 +28,7 @@ export interface MemorySearchResult {
 export class PersistentMemoryManager {
   private prisma: PrismaClient;
   private cache: Map<string, ConversationEntry[]> = new Map();
-  private maxConversationsPerUser = 100;
+  private maxConversationsPerUser = 500; // Megnövelt limit
   private cacheExpiry = 5 * 60 * 1000; // 5 perc
   private lastCacheUpdate = new Map<string, number>();
 

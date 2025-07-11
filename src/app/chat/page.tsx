@@ -71,8 +71,8 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: content,
-          userId: session.user?.email || 'anonymous'
+          message: content
+          // userId eltávolítva - a backend automatikusan fogja keresni/létrehozni a User rekordot
         }),
       });
 

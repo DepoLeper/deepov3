@@ -96,7 +96,10 @@ Ez a dokumentum a DeepO intelligens marketing asszisztens fejlesztési lépései
 - [x] **Fallback mechanizmusok implementálása**
 - [x] **SimpleHybridController v4.0 upgrade**
 - [x] **API compatibility és route frissítés**
+- [x] **Foreign key constraint megoldás (User management)**
+- [x] **OpenAI SDK API compatibility javítás**
 - [x] **Comprehensive testing és validation**
+- [x] **Perzisztencia tesztelés (oldal frissítés, szerver restart)**
 
 ### **Technikai Megvalósítás:**
 ```typescript
