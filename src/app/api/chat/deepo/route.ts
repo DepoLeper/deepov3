@@ -25,18 +25,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // SimpleHybridController használata (fokozatos hibrid megközelítés)
+    // SimpleHybridController v4.0 használata (Persistent Memory)
     const hybridController = new SimpleHybridController();
     const result = await hybridController.processMessage(
-      message, 
       userId || session.user?.email || 'anonymous',
-      `session_${Date.now()}`
+      `session_${Date.now()}`,
+      message
     );
 
     // Válasz visszaküldése
     return NextResponse.json({
       response: result.response,
-      suggestions: result.suggestions,
       confidence: result.confidence,
       metadata: result.metadata
     });
@@ -48,11 +47,12 @@ export async function POST(request: NextRequest) {
       { 
         error: 'Belső szerver hiba',
         response: 'Sajnálom, hiba történt. Próbáld újra később!',
-        suggestions: ['Próbáld újra', 'Segítség kérése'],
         confidence: 0.1,
         metadata: {
+          memoryUsed: false,
+          contextUsed: false,
           timestamp: new Date().toISOString(),
-          source: 'Error Handler'
+          processingTime: 0
         }
       },
       { status: 500 }
@@ -63,15 +63,17 @@ export async function POST(request: NextRequest) {
 // Health check endpoint
 export async function GET() {
   try {
-    const hybridController = new SimpleHybridController();
-    const status = hybridController.getStatus();
-    
     return NextResponse.json({
-      status: status.status,
-      agent: 'SimpleHybridController (DeepO)',
+      status: 'ok',
+      agent: 'SimpleHybridController v4.0 (DeepO)',
       timestamp: new Date().toISOString(),
-      version: status.version,
-      components: status.components
+      version: '4.0.0-persistent-memory',
+      components: [
+        'OpenAI Agents SDK',
+        'PersistentMemoryManager (Prisma + SQLite)',
+        'SimpleContextLoader (Content Guides)',
+        'Hibrid Cache + Database architektúra'
+      ]
     });
   } catch (error) {
     return NextResponse.json(

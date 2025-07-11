@@ -1,272 +1,206 @@
 import { runDeepOAgent } from '@/lib/agent-sdk/OpenAIAgentPOC';
-import { SimpleMemoryManager, MemorySearchResult } from './SimpleMemoryManager';
+import { PersistentMemoryManager, MemorySearchResult } from './PersistentMemoryManager';
 import { SimpleContextLoader, ContextSearchResult } from './SimpleContextLoader';
 
 /**
- * SimpleHybridController - Hibrid megközelítés Memory + Context integrációval
+ * SimpleHybridController v4.0 - Professzionális Perzisztens Memória
  * 
- * FÁZIS 4: SimpleContextLoader integráció hozzáadva
- * - Memory: Korábbi beszélgetések
- * - Context: content_guides.md útmutatók
+ * FRISSÍTETT ARCHITEKTÚRA:
+ * - Memory: PersistentMemoryManager (Prisma + SQLite + Cache)
+ * - Context: SimpleContextLoader (Content Guides)
  * - OpenAI SDK: Core AI functionality
+ * - Hibrid megoldás: Database + Cache + Fallback
  */
 export class SimpleHybridController {
-  private memoryManager: SimpleMemoryManager;
+  private memoryManager: PersistentMemoryManager;
   private contextLoader: SimpleContextLoader;
   
   constructor() {
-    console.log('🚀 SimpleHybridController inicializálva');
-    this.memoryManager = new SimpleMemoryManager();
+    console.log('🚀 SimpleHybridController v4.0 inicializálva - Persistent Memory');
+    this.memoryManager = new PersistentMemoryManager();
     this.contextLoader = new SimpleContextLoader();
   }
 
   /**
-   * Fő message processing - OpenAI SDK + Memory + Context integráció
+   * Hibrid üzenet feldolgozás - Persistent Memory + Context
    */
-  async processMessage(message: string, userId: string, sessionId: string): Promise<{
+  async processMessage(
+    userId: string,
+    sessionId: string,
+    message: string
+  ): Promise<{
     response: string;
-    suggestions: string[];
     confidence: number;
-    metadata: any;
+    metadata: {
+      memoryUsed: boolean;
+      contextUsed: boolean;
+      timestamp: string;
+      processingTime: number;
+    };
   }> {
+    const startTime = Date.now();
+    
     try {
-      console.log('📨 SimpleHybrid üzenet feldolgozása:', message);
+      console.log(`📨 SimpleHybrid üzenet feldolgozása: ${message}`);
       
-      // 1. Memory keresés - releváns korábbi beszélgetések
-      const memoryResult = await this.memoryManager.searchRelevantMemories(userId, message);
+      // 1. Memory keresés - Persistent Database + Cache
+      const memoryResult: MemorySearchResult = await this.memoryManager.searchRelevantMemories(
+        userId,
+        message
+      );
       
-      // 2. Context loading - releváns útmutatók
-      const contextResult = await this.contextLoader.loadContext(message);
+      // 2. Context loading - Content Guides
+      const contextResult: ContextSearchResult = await this.contextLoader.searchContext(message);
       
-      // 3. Kombinált context építése
+      // 3. Kombinált kontextus építés
       const combinedContext = this.buildCombinedContext(memoryResult, contextResult);
       
-      // 4. Enhanced message az OpenAI SDK számára
-      const enhancedMessage = this.enhanceMessageWithContext(message, combinedContext);
+      // 4. OpenAI SDK hívás a kombinált kontextussal
+      const agentResponse = await runDeepOAgent([
+        {
+          role: 'system',
+          content: `Te DeepO vagy, a T-DEPO intelligens marketing asszisztense. ${combinedContext}`
+        },
+        {
+          role: 'user',
+          content: message
+        }
+      ]);
       
-      // 5. OpenAI SDK hívás (memory + context)
-      const result = await runDeepOAgent(enhancedMessage, 'main');
+      // 5. Válasz feldolgozása
+      const response = this.extractResponse(agentResponse);
       
-      if (!result.success) {
-        throw new Error(result.error || 'OpenAI Agent hiba');
-      }
-
-      // 6. Beszélgetés mentése a memóriába
+      // 6. Beszélgetés mentése - Persistent Database
       await this.memoryManager.saveConversation(
         userId,
         sessionId,
-        message, // eredeti user message
-        result.response // agent válasz
+        message,
+        response
       );
-
-      // 7. Status információk
-      const memoryStats = this.memoryManager.getMemoryStats(userId);
-      const contextStatus = this.contextLoader.getStatus();
-      const globalMemoryStatus = SimpleMemoryManager.getGlobalMemoryStatus();
       
-      console.log(`🌐 Globális memória: ${globalMemoryStatus.totalUsers} users, ${globalMemoryStatus.totalConversations} total conversations`);
-
-      // 8. Enhanced válasz formázása
-      const response = {
-        response: result.response,
-        suggestions: this.generateContextualSuggestions(memoryResult, contextResult, message),
-        confidence: 0.9,
+      const processingTime = Date.now() - startTime;
+      
+      // 7. Globális memória statisztikák
+      await this.logGlobalMemoryStats(userId);
+      
+      console.log(`✅ SimpleHybrid válasz sikeres (persistent memory + context)`);
+      
+      return {
+        response,
+        confidence: 0.95, // Persistent memory + context = magasabb megbízhatóság
         metadata: {
-          agent: result.agent,
-          timestamp: result.metadata.timestamp,
-          agentType: result.metadata.agentType,
-          source: 'SimpleHybridController',
-          userId,
-          sessionId,
-          memory: {
-            relevantConversations: memoryResult.relevantConversations.length,
-            keywords: memoryResult.keywords,
-            summary: memoryResult.summary,
-            stats: memoryStats
-          },
-          context: {
-            success: contextResult.success,
-            guidesUsed: contextResult.guidesUsed,
-            error: contextResult.error,
-            status: contextStatus
-          }
+          memoryUsed: memoryResult.relevantConversations.length > 0,
+          contextUsed: contextResult.success,
+          timestamp: new Date().toISOString(),
+          processingTime
         }
       };
-
-      console.log('✅ SimpleHybrid válasz sikeres (memory + context)');
-      return response;
-
-    } catch (error) {
-      console.error('❌ SimpleHybrid hiba:', error);
       
-      throw new Error(`SimpleHybrid feldolgozási hiba: ${error instanceof Error ? error.message : 'Ismeretlen hiba'}`);
+    } catch (error) {
+      console.error('❌ SimpleHybrid feldolgozási hiba:', error);
+      
+      // Fallback válasz
+      return {
+        response: 'Sajnos most nem tudok segíteni, de rögzítettem a kérésed.',
+        confidence: 0.1,
+        metadata: {
+          memoryUsed: false,
+          contextUsed: false,
+          timestamp: new Date().toISOString(),
+          processingTime: Date.now() - startTime
+        }
+      };
     }
   }
 
   /**
-   * Kombinált context építése Memory + Content Guides alapján
+   * Kombinált kontextus építés - Memory + Context
    */
   private buildCombinedContext(memoryResult: MemorySearchResult, contextResult: ContextSearchResult): string {
-    const contextParts: string[] = [];
+    let context = '';
     
-    // 1. Memory Context (ha van)
+    // Memory kontextus
     if (memoryResult.relevantConversations.length > 0) {
-      contextParts.push('═══ MEMÓRIA KONTEXTUS ═══');
-      contextParts.push(`${memoryResult.summary}\n`);
+      context += `\n\n🧠 MEMÓRIA KONTEXTUS:\n${memoryResult.summary}\n`;
       
-      // Top 2 legfontosabb korábbi beszélgetés
-      memoryResult.relevantConversations.slice(0, 2).forEach((conv, index) => {
-        const timeAgo = this.getTimeAgo(conv.timestamp);
-        contextParts.push(
-          `${index + 1}. ${timeAgo}:`,
-          `   "${conv.userMessage}" → "${conv.assistantMessage}"`
-        );
+      // Top 3 releváns beszélgetés
+      const topConversations = memoryResult.relevantConversations.slice(0, 3);
+      topConversations.forEach((conv, index) => {
+        context += `${index + 1}. User: "${conv.userMessage}" | Assistant: "${conv.assistantMessage.substring(0, 100)}..."\n`;
       });
+    }
+    
+    // Content Guide kontextus
+    if (contextResult.success) {
+      context += `\n\n📖 ÚTMUTATÓ KONTEXTUS:\n${contextResult.context}\n`;
+      context += `Használt útmutatók: ${contextResult.guidesUsed.join(', ')}\n`;
+    }
+    
+    // Alap DeepO személyiség
+    context += `\n\n🎯 DEEPO SZEMÉLYISÉG:
+- Intelligens marketing asszisztens a T-DEPO számára
+- Szakértő SEO, content marketing, social media témákban
+- Barátságos, segítőkész, de professzionális hangvétel
+- Magyar nyelvű szakértői tudás
+- Válaszaid legyenek gyakorlatiak és actionable`;
+    
+    return context;
+  }
+
+  /**
+   * Válasz kinyerése az OpenAI SDK válaszából
+   */
+  private extractResponse(agentResponse: any): string {
+    try {
+      if (agentResponse && agentResponse.messages && agentResponse.messages.length > 0) {
+        const lastMessage = agentResponse.messages[agentResponse.messages.length - 1];
+        return lastMessage?.content || 'Nincs válasz';
+      }
       
-      contextParts.push(''); // üres sor
-    }
-    
-    // 2. Content Guides Context (ha van)
-    if (contextResult.success && contextResult.context) {
-      contextParts.push('═══ ÚTMUTATÓ KONTEXTUS ═══');
-      contextParts.push(`Használt útmutatók: ${contextResult.guidesUsed.join(', ')}\n`);
-      contextParts.push(contextResult.context);
-      contextParts.push(''); // üres sor
-    }
-    
-    // 3. Ha nincs semmi kontextus
-    if (contextParts.length === 0) {
-      return 'Nincs elérhető kontextus információ.';
-    }
-    
-    return contextParts.join('\n');
-  }
-
-  /**
-   * Message enhanced-elése kombinált context-tel
-   */
-  private enhanceMessageWithContext(message: string, combinedContext: string): string {
-    if (combinedContext === 'Nincs elérhető kontextus információ.') {
-      return message; // Nem enhanced-eljük, ha nincs kontextus
-    }
-
-    return `${combinedContext}
-
-═══ JELENLEGI KÉRDÉS ═══
-${message}
-
-INSTRUKCIÓ: A fenti kontextus alapján (memória + útmutatók) válaszolj. Használd a releváns információkat és hivatkozz korábbi beszélgetésekre, ha van ilyen.`;
-  }
-
-  /**
-   * Kontextuális javaslatok generálása Memory + Context alapján
-   */
-  private generateContextualSuggestions(
-    memoryResult: MemorySearchResult,
-    contextResult: ContextSearchResult, 
-    currentMessage: string
-  ): string[] {
-    const suggestions: string[] = [];
-
-    // Memory alapú javaslatok
-    if (memoryResult.relevantConversations.length > 0) {
-      const recentTopics = memoryResult.keywords.slice(0, 2);
-      if (recentTopics.length > 0) {
-        suggestions.push(`Folytassuk a ${recentTopics[0]} témát?`);
+      // Alternatív struktúra ellenőrzése
+      if (typeof agentResponse === 'string') {
+        return agentResponse;
       }
-      suggestions.push('Mit beszéltünk erről korábban?');
-    }
-
-    // Context alapú javaslatok
-    if (contextResult.success && contextResult.guidesUsed.length > 0) {
-      if (contextResult.guidesUsed.some(g => g.toLowerCase().includes('blog'))) {
-        suggestions.push('Készítsünk belőle blog cikket?');
+      
+      if (agentResponse?.content) {
+        return agentResponse.content;
       }
-      if (contextResult.guidesUsed.some(g => g.toLowerCase().includes('seo'))) {
-        suggestions.push('Elemezzük SEO szempontból?');
-      }
-      if (contextResult.guidesUsed.some(g => g.toLowerCase().includes('social'))) {
-        suggestions.push('Social media tartalmat is készítsünk?');
-      }
+      
+      return 'Nincs értelmezhető válasz';
+      
+    } catch (error) {
+      console.error('❌ Válasz kinyerési hiba:', error);
+      return 'Hiba a válasz feldolgozásában';
     }
+  }
 
-    // Alapértelmezett javaslatok
-    if (suggestions.length === 0) {
-      suggestions.push(
-        'Elmagyarázod részletesebben?',
-        'További információkat keresel?',
-        'Készítsünk belőle tartalmat?'
-      );
+  /**
+   * Globális memória statisztikák logging
+   */
+  private async logGlobalMemoryStats(userId: string): Promise<void> {
+    try {
+      const stats = await this.memoryManager.getMemoryStats(userId);
+      
+      console.log(`🌐 Perzisztens memória: ${stats.totalConversations} beszélgetés, ${stats.totalKeywords} kulcsszó`);
+      console.log(`📊 Cache állapot: ${stats.dbStats.cacheSize} cache, ${stats.dbStats.conversationRecords} DB record`);
+      
+    } catch (error) {
+      console.error('❌ Memory stats hiba:', error);
     }
-
-    return suggestions.slice(0, 4); // Max 4 javaslat
   }
 
   /**
-   * Idő számítás (mennyi ideje volt)
+   * Memory statisztikák lekérése
    */
-  private getTimeAgo(timestamp: Date): string {
-    const now = new Date();
-    const diffMs = now.getTime() - timestamp.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return 'most';
-    if (diffMins < 60) return `${diffMins} perce`;
-    if (diffHours < 24) return `${diffHours} órája`;
-    return `${diffDays} napja`;
+  async getMemoryStats(userId: string) {
+    return await this.memoryManager.getMemoryStats(userId);
   }
 
   /**
-   * Chat interface számára egyszerűsített metódus
+   * Cleanup
    */
-  async chat(message: string, userId: string): Promise<string> {
-    const sessionId = `session_${Date.now()}`;
-    const result = await this.processMessage(message, userId, sessionId);
-    return result.response;
-  }
-
-  /**
-   * Health check - most context status-szal is
-   */
-  getStatus(): { status: string; version: string; components: string[] } {
-    const contextStatus = this.contextLoader.getStatus();
-    const memoryStatus = SimpleMemoryManager.getGlobalMemoryStatus();
-    
-    return {
-      status: contextStatus.loadError ? 'degraded' : 'ok',
-      version: '3.0.0-memory-context',
-      components: [
-        'OpenAI Agents SDK',
-        'SimpleMemoryManager',
-        `SimpleContextLoader (${contextStatus.totalGuides} útmutató)`
-      ]
-    };
-  }
-
-  /**
-   * Debug információk lekérése
-   */
-  async getDebugInfo() {
-    const contextDebug = await this.contextLoader.getDebugInfo();
-    const memoryStatus = SimpleMemoryManager.getGlobalMemoryStatus();
-    
-    return {
-      memory: memoryStatus,
-      context: contextDebug,
-      integration: 'SimpleHybridController v3.0'
-    };
-  }
-
-  /**
-   * Memory management metódusok
-   */
-  getMemoryStats(userId: string) {
-    return this.memoryManager.getMemoryStats(userId);
-  }
-
-  clearMemory(userId?: string) {
-    this.memoryManager.clearMemory(userId);
+  async cleanup(): Promise<void> {
+    await this.memoryManager.cleanup();
+    console.log('🧹 SimpleHybridController cleanup befejezve');
   }
 } 

@@ -130,6 +130,13 @@ export class SimpleContextLoader {
   }
 
   /**
+   * Kontextus keresés - API kompatibilitás
+   */
+  async searchContext(query: string): Promise<ContextSearchResult> {
+    return await this.loadContext(query);
+  }
+
+  /**
    * Inicializálás biztosítása
    */
   private async ensureInitialized(): Promise<void> {
