@@ -4,3 +4,6 @@ globs:
 alwaysApply: true
 ---
 Mindig olvasd át az összed .md kiterjesztésű fájlt mielőtt bármilyen módosítást új kód írást végrehajtanál
+
+Az openai_agent_comparison.md minden módosítás előtt olvasd át
+Az openaichatgptdoc.md minden módosítás előtt olvad át

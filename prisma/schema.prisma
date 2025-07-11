@@ -53,6 +53,11 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
+  
+  // Agent kapcsolatok
+  agentConversations AgentConversation[]
+  agentMemories      AgentMemory[]
+  generatedContents  GeneratedContent[]
 }
 
 // Jelszó-visszaállításhoz vagy email megerősítéshez használt token
@@ -62,4 +67,84 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// Agent beszélgetés előzmények
+model AgentConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  sessionId String
+  messages  Json     // Array of messages with role, content, timestamp
+  context   Json     // Additional context data
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, sessionId])
+  @@index([userId])
+  @@index([sessionId])
+}
+
+// Agent hosszútávú memória
+model AgentMemory {
+  id         String   @id @default(cuid())
+  userId     String
+  memoryType String   // 'preference', 'fact', 'pattern', 'feedback'
+  key        String
+  value      Json     // Flexible JSON storage
+  confidence Float    @default(0.8)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, key])
+  @@index([userId])
+  @@index([memoryType])
+}
+
+// Agent személyiség konfigurációk
+model AgentPersonality {
+  id        String   @id @default(cuid())
+  name      String
+  config    Json     // Personality traits, system prompt, examples
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([isActive])
+}
+
+// Generált tartalmak tárolása
+model GeneratedContent {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // 'blog', 'newsletter', 'social', 'product_description'
+  title       String?
+  content     String
+  metadata    Json?    // SEO score, keywords, etc.
+  status      String   @default("draft") // 'draft', 'approved', 'published'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysis ContentAnalysis?
+  
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+}
+
+// SEO és tartalom elemzési eredmények
+model ContentAnalysis {
+  id               String   @id @default(cuid())
+  contentId        String   @unique
+  seoScore         Int?
+  readabilityScore Float?
+  keywordDensity   Json?    // Keyword density analysis
+  suggestions      Json?    // Array of suggestions
+  analyzedAt       DateTime @default(now())
+  
+  content GeneratedContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
 }
