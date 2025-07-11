@@ -221,13 +221,57 @@ export default function ChatPage() {
             {/* Debug Panel */}
             {debugMode && lastApiResponse && (
               <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 mb-6">
-                <h3 className="text-lg font-semibold text-white mb-3">🔍 Debug Info</h3>
-                <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-white mb-3">🔍 Debug Info - Fázis 2: Memory Integration</h3>
+                <div className="space-y-4">
+                  
+                  {/* Memory Debug Info */}
+                  {lastApiResponse.metadata?.memory && (
+                    <div className="bg-gray-700/50 rounded p-3">
+                      <strong className="text-purple-400">🧠 Memory Info:</strong>
+                      <div className="text-xs text-gray-300 mt-2 space-y-1">
+                        <div>📊 Releváns beszélgetések: <span className="text-green-400">{lastApiResponse.metadata.memory.relevantConversations}</span></div>
+                        <div>🔑 Kulcsszavak: <span className="text-yellow-400">[{lastApiResponse.metadata.memory.keywords?.join(', ')}]</span></div>
+                        <div>📝 Összefoglaló: <span className="text-blue-400">{lastApiResponse.metadata.memory.summary}</span></div>
+                        {lastApiResponse.metadata.memory.stats && (
+                          <>
+                            <div>💾 Összes beszélgetés: <span className="text-green-400">{lastApiResponse.metadata.memory.stats.totalConversations}</span></div>
+                            <div>🏷️ Összes kulcsszó: <span className="text-green-400">{lastApiResponse.metadata.memory.stats.totalKeywords}</span></div>
+                            <div>🕒 Friss témák: <span className="text-cyan-400">[{lastApiResponse.metadata.memory.stats.recentTopics?.join(', ')}]</span></div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Agent Info */}
+                  <div className="bg-gray-700/50 rounded p-3">
+                    <strong className="text-blue-400">🤖 Agent Info:</strong>
+                    <div className="text-xs text-gray-300 mt-2">
+                      <div>Agent: <span className="text-green-400">{lastApiResponse.metadata?.agent || 'DeepO'}</span></div>
+                      <div>Forrás: <span className="text-yellow-400">{lastApiResponse.metadata?.source || 'N/A'}</span></div>
+                      <div>Válasz típus: <span className="text-purple-400">{lastApiResponse.metadata?.agentType || 'standard'}</span></div>
+                      <div>Megbízhatóság: <span className="text-green-400">{Math.round((lastApiResponse.confidence || 0) * 100)}%</span></div>
+                    </div>
+                  </div>
+
+                  {/* Full JSON Response */}
                   <div>
-                    <strong className="text-green-400">API Válasz:</strong>
-                    <pre className="text-xs text-gray-300 mt-1 overflow-x-auto">
-                      {JSON.stringify(lastApiResponse, null, 2)}
-                    </pre>
+                    <button 
+                      onClick={() => {
+                        const details = document.getElementById('fullApiResponse');
+                        if (details) {
+                          details.style.display = details.style.display === 'none' ? 'block' : 'none';
+                        }
+                      }}
+                      className="text-green-400 hover:text-green-300 text-sm"
+                    >
+                      📋 Teljes API válasz megjelenítése/elrejtése
+                    </button>
+                    <div id="fullApiResponse" style={{ display: 'none' }} className="mt-2">
+                      <pre className="text-xs text-gray-300 mt-1 overflow-x-auto max-h-40 overflow-y-auto bg-gray-900/50 p-2 rounded">
+                        {JSON.stringify(lastApiResponse, null, 2)}
+                      </pre>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -237,8 +281,8 @@ export default function ChatPage() {
                          <div className="flex justify-between items-center mb-6">
                <div className="flex items-center space-x-4">
                  <div className="flex items-center space-x-2">
-                   <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                   <span className="text-gray-300 text-sm">SimpleHybrid Controller</span>
+                   <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                   <span className="text-gray-300 text-sm">SimpleHybrid Controller + Memory</span>
                  </div>
                </div>
               <button
