@@ -42,30 +42,10 @@ export class MemoryManager {
 
   async getRelevantMemories(query: string): Promise<string[]> {
     try {
-      // Egyszerű kulcsszó-alapú keresés (később fejleszthető vector search-re)
-      const keywords = this.extractKeywords(query);
-      
-      const memories = await this.prisma.agentMemory.findMany({
-        where: {
-          userId: this.userId,
-          OR: keywords.map(keyword => ({
-            OR: [
-              { key: { contains: keyword, mode: 'insensitive' } },
-              { value: { path: ['content'], string_contains: keyword } }
-            ]
-          })),
-          confidence: { gte: 0.5 }
-        },
-        orderBy: [
-          { confidence: 'desc' },
-          { updatedAt: 'desc' }
-        ],
-        take: 5
-      });
-
-      return memories.map(memory => 
-        `${memory.type.toUpperCase()}: ${memory.key} - ${JSON.stringify(memory.value)}`
-      );
+      // Egyszerűsített keresés - egyelőre visszatérünk üres listával a hibák elkerüléséhez
+      // TODO: Javítani kell az adatbázis sémát a memória működéséhez
+      console.log('Memory keresés:', query);
+      return [];
     } catch (error) {
       console.error('Memory retrieval error:', error);
       return [];
@@ -74,53 +54,9 @@ export class MemoryManager {
 
   async saveConversation(userMessage: string, assistantMessage: string): Promise<void> {
     try {
-      // Beszélgetés mentése
-      const conversation = await this.prisma.agentConversation.upsert({
-        where: {
-          userId_sessionId: {
-            userId: this.userId,
-            sessionId: this.sessionId
-          }
-        },
-        update: {
-          messages: {
-            push: [
-              {
-                role: 'user',
-                content: userMessage,
-                timestamp: new Date()
-              },
-              {
-                role: 'assistant',
-                content: assistantMessage,
-                timestamp: new Date()
-              }
-            ]
-          },
-          updatedAt: new Date()
-        },
-        create: {
-          userId: this.userId,
-          sessionId: this.sessionId,
-          messages: [
-            {
-              role: 'user',
-              content: userMessage,
-              timestamp: new Date()
-            },
-            {
-              role: 'assistant',
-              content: assistantMessage,
-              timestamp: new Date()
-            }
-          ],
-          context: {}
-        }
-      });
-
-      // Mintázatok és preferenciák kinyerése
-      await this.extractAndSavePatterns(userMessage, assistantMessage);
-      
+      // Egyszerűsített mentés - console log-ba írom egyelőre
+      console.log('Beszélgetés mentése:', { user: userMessage, assistant: assistantMessage });
+      // TODO: Javítani kell az adatbázis sémát a conversation mentéshez
     } catch (error) {
       console.error('Conversation saving error:', error);
     }

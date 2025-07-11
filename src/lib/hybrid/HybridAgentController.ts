@@ -170,49 +170,67 @@ const blogManagementTool = tool({
       },
       title: {
         type: 'string',
-        description: 'A blog cikk címe'
+        description: 'A blog cikk címe (opcionális list action-höz)'
       },
       content: {
         type: 'string',
-        description: 'A blog cikk tartalma (markdown formátumban)'
+        description: 'A blog cikk tartalma (opcionális list action-höz)'
       },
       status: {
         type: 'string',
         enum: ['draft', 'approved', 'scheduled', 'published'],
-        description: 'A cikk státusza'
+        description: 'A cikk státusza (opcionális list action-höz)'
       },
       scheduledDate: {
         type: 'string',
-        description: 'Ütemezett publikálás dátuma (ISO formátum)'
+        description: 'Ütemezett publikálás dátuma (opcionális list action-höz)'
       }
     },
-    required: ['action'],
+    required: ['action', 'title', 'content', 'status', 'scheduledDate'],
     additionalProperties: false
   },
   execute: async ({ action, title, content, status, scheduledDate }: { 
     action: string; 
-    title?: string; 
-    content?: string; 
-    status?: string; 
-    scheduledDate?: string; 
+    title: string; 
+    content: string; 
+    status: string; 
+    scheduledDate: string; 
   }) => {
     // Itt majd a Prisma DB integrációt fogjuk használni
     // Egyelőre mock válasz
     switch (action) {
       case 'create':
+        // Create action esetén használjuk a megadott adatokat
+        const actualTitle = title || 'Új blog cikk';
+        const actualStatus = status || 'draft';
         return JSON.stringify({
           success: true,
           id: Math.random().toString(36).substring(7),
-          message: `Blog cikk "${title}" létrehozva vázlat státuszban`,
-          data: { title, status: 'draft', createdAt: new Date().toISOString() }
+          message: `Blog cikk "${actualTitle}" létrehozva ${actualStatus} státuszban`,
+          data: { title: actualTitle, status: actualStatus, createdAt: new Date().toISOString() }
         });
       case 'list':
+        // List action esetén ignoráljuk a többi paramétert
         return JSON.stringify({
           success: true,
           posts: [
             { id: '1', title: 'Téli munkavédelem', status: 'draft', createdAt: '2025-07-11' },
             { id: '2', title: 'Kézhigiénia alapjai', status: 'approved', createdAt: '2025-07-10' }
           ]
+        });
+      case 'update':
+        const updateTitle = title || 'Frissített cikk';
+        return JSON.stringify({
+          success: true,
+          message: `Blog cikk "${updateTitle}" frissítve`,
+          data: { title: updateTitle, status: status || 'draft', updatedAt: new Date().toISOString() }
+        });
+      case 'schedule':
+        const scheduleTitle = title || 'Ütemezett cikk';
+        return JSON.stringify({
+          success: true,
+          message: `Blog cikk "${scheduleTitle}" ütemezve: ${scheduledDate}`,
+          data: { title: scheduleTitle, status: 'scheduled', scheduledDate: scheduledDate }
         });
       default:
         return JSON.stringify({
@@ -231,14 +249,12 @@ const blogManagementTool = tool({
  */
 export class HybridAgentController {
   private openaiAgent: Agent;
-  private memoryManager: MemoryManager;
   private personalityEngine: PersonalityEngine;
   private contextLoader: ContextLoader;
   private isInitialized = false;
 
   constructor() {
     // Komponensek inicializálása
-    this.memoryManager = new MemoryManager();
     this.personalityEngine = new PersonalityEngine();
     this.contextLoader = new ContextLoader();
     
@@ -295,8 +311,8 @@ MINDIG:
     if (this.isInitialized) return;
 
     try {
-      // Context betöltése
-      await this.contextLoader.loadContext();
+      // Context loader inicializálása (a content guides betöltése nélkül)
+      // A specifikus context betöltés a processMessage-ben történik
       this.isInitialized = true;
     } catch (error) {
       console.error('HybridAgentController inicializálási hiba:', error);
@@ -315,23 +331,20 @@ MINDIG:
 
     try {
       // 1. Releváns memóriák betöltése
-      const relevantMemories = await this.memoryManager.getRelevantMemories(
-        message, 
-        context.userId
-      );
+      const { MemoryManager } = await import('../agent/MemoryManager');
+      const memoryManager = new MemoryManager(context.userId, context.sessionId);
+      const relevantMemories = await memoryManager.getRelevantMemories(message);
 
       // 2. Személyiség beállítása
-      const personality = await this.personalityEngine.getPersonality(
-        context.userId, 
-        'default'
-      );
+      await this.personalityEngine.loadPersonality('deepo_default');
+      const personality = await this.personalityEngine.getCurrentPersonality();
 
       // 3. Enriched context készítése
       const enrichedContext = {
         userMessage: message,
         userId: context.userId,
         relevantMemories: relevantMemories.slice(0, 3), // Top 3 memória
-        personality: personality.instructions,
+        personality: personality?.systemPrompt || 'DeepO alapértelmezett személyiség',
         conversationHistory: context.conversationHistory?.slice(-5) || [] // Utolsó 5 üzenet
       };
 
@@ -342,8 +355,19 @@ MINDIG:
       });
 
       // 5. Válasz feldolgozása
+      let responseText = 'Nincs válasz';
+      
+      if (agentResponse && agentResponse.messages && agentResponse.messages.length > 0) {
+        const lastMessage = agentResponse.messages[agentResponse.messages.length - 1];
+        responseText = lastMessage?.content || 'Nincs válasz';
+      } else if (agentResponse && agentResponse.content) {
+        responseText = agentResponse.content;
+      } else if (agentResponse && typeof agentResponse === 'string') {
+        responseText = agentResponse;
+      }
+      
       const response: AgentResponse = {
-        response: agentResponse.messages[agentResponse.messages.length - 1]?.content || 'Nincs válasz',
+        response: responseText,
         confidence: 0.9, // OpenAI SDK általában megbízható
         metadata: {
           timestamp: new Date().toISOString(),
@@ -356,12 +380,7 @@ MINDIG:
       };
 
       // 6. Memória mentése és tanulás
-      await this.memoryManager.saveInteraction(
-        message,
-        response.response,
-        context.userId,
-        0.8
-      );
+      await memoryManager.saveConversation(message, response.response);
 
       return response;
 

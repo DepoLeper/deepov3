@@ -30,6 +30,8 @@ export default function ChatPage() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+  const [lastApiResponse, setLastApiResponse] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -80,6 +82,9 @@ export default function ChatPage() {
 
       const data = await response.json();
       
+      // Debug információ mentése
+      setLastApiResponse(data);
+
       const assistantMessage: ChatMessage = {
         id: Date.now().toString() + '_assistant',
         role: 'assistant',
@@ -212,6 +217,37 @@ export default function ChatPage() {
                 </div>
               </div>
             )}
+
+            {/* Debug Panel */}
+            {debugMode && lastApiResponse && (
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-semibold text-white mb-3">🔍 Debug Info</h3>
+                <div className="space-y-3">
+                  <div>
+                    <strong className="text-green-400">API Válasz:</strong>
+                    <pre className="text-xs text-gray-300 mt-1 overflow-x-auto">
+                      {JSON.stringify(lastApiResponse, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Debug Toggle */}
+                         <div className="flex justify-between items-center mb-6">
+               <div className="flex items-center space-x-4">
+                 <div className="flex items-center space-x-2">
+                   <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                   <span className="text-gray-300 text-sm">SimpleHybrid Controller</span>
+                 </div>
+               </div>
+              <button
+                onClick={() => setDebugMode(!debugMode)}
+                className="text-xs px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full hover:bg-blue-500/30 transition-colors"
+              >
+                {debugMode ? '🐛 Debug OFF' : '🔍 Debug ON'}
+              </button>
+            </div>
 
             <div ref={messagesEndRef} />
           </div>

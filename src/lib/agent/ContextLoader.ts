@@ -35,6 +35,10 @@ export class ContextLoader {
   async loadContext(query: string): Promise<string> {
     await this.loadContentGuides();
     
+    if (!query || typeof query !== 'string') {
+      return '';
+    }
+    
     if (this.contentGuides.length === 0) {
       return '';
     }
@@ -91,6 +95,10 @@ export class ContextLoader {
   }
 
   private findRelevantGuides(query: string): ContentGuide[] {
+    if (!query || typeof query !== 'string') {
+      return [];
+    }
+    
     const queryLower = query.toLowerCase();
     const queryWords = queryLower.split(/\s+/).filter(word => word.length > 2);
     

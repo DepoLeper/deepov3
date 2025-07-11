@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { HybridAgentController } from '@/lib/hybrid/HybridAgentController';
-
-// Globális HybridAgentController instance (singleton pattern)
-let hybridAgent: HybridAgentController | null = null;
-
-function getHybridAgent(): HybridAgentController {
-  if (!hybridAgent) {
-    hybridAgent = new HybridAgentController();
-  }
-  return hybridAgent;
-}
+import { SimpleHybridController } from '@/lib/hybrid/SimpleHybridController';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,21 +25,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // HybridAgentController használata
-    const agent = getHybridAgent();
-    
-    // Chat válasz generálása
-    const response = await agent.processMessage(message, {
-      userId: userId || session.user?.email || 'anonymous',
-      sessionId: `session_${Date.now()}`
-    });
+    // SimpleHybridController használata (fokozatos hibrid megközelítés)
+    const hybridController = new SimpleHybridController();
+    const result = await hybridController.processMessage(
+      message, 
+      userId || session.user?.email || 'anonymous',
+      `session_${Date.now()}`
+    );
 
     // Válasz visszaküldése
     return NextResponse.json({
-      response: response.response,
-      suggestions: response.suggestions,
-      confidence: response.confidence,
-      metadata: response.metadata
+      response: result.response,
+      suggestions: result.suggestions,
+      confidence: result.confidence,
+      metadata: result.metadata
     });
 
   } catch (error) {
@@ -60,7 +49,11 @@ export async function POST(request: NextRequest) {
         error: 'Belső szerver hiba',
         response: 'Sajnálom, hiba történt. Próbáld újra később!',
         suggestions: ['Próbáld újra', 'Segítség kérése'],
-        confidence: 0.1
+        confidence: 0.1,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          source: 'Error Handler'
+        }
       },
       { status: 500 }
     );
@@ -70,18 +63,21 @@ export async function POST(request: NextRequest) {
 // Health check endpoint
 export async function GET() {
   try {
-    const agent = getHybridAgent();
+    const hybridController = new SimpleHybridController();
+    const status = hybridController.getStatus();
     
     return NextResponse.json({
-      status: 'ok',
-      agent: 'HybridAgentController',
-      timestamp: new Date().toISOString()
+      status: status.status,
+      agent: 'SimpleHybridController (DeepO)',
+      timestamp: new Date().toISOString(),
+      version: status.version,
+      components: status.components
     });
   } catch (error) {
     return NextResponse.json(
       { 
         status: 'error',
-        error: 'Agent inicializálási hiba'
+        error: 'SimpleHybrid szolgáltatás nem elérhető'
       },
       { status: 500 }
     );
