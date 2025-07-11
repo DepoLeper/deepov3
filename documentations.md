@@ -7,12 +7,12 @@ Ez a fájl összegyűjti az összes szükséges dokumentációt és referenciát
 ### 1. Projekt Specifikáció
 - **Fájl**: `specification.md`
 - **Tartalom**: Projekt célok, architektúra, jelenlegi állapot
-- **Utolsó frissítés**: 2025.07.12 - Fázis 4 befejezés
+- **Utolsó frissítés**: 2025.07.12 - Fázis 5 befejezés (Perzisztens Memória)
 
 ### 2. Fejlesztési Lépések
 - **Fájl**: `steps.md`
 - **Tartalom**: Részletes fejlesztési ütemterv és haladás
-- **Utolsó frissítés**: 2025.07.12 - Fázis 4 dokumentálás
+- **Utolsó frissítés**: 2025.07.12 - Fázis 5 teljes befejezés
 
 ### 3. Tartalomgenerálási Útmutatók
 - **Fájl**: `content_guides.md`
@@ -38,7 +38,7 @@ Ez a fájl összegyűjti az összes szükséges dokumentációt és referenciát
 
 ## 🏗️ Hibrid Architektúra Dokumentáció
 
-### Jelenlegi Komponensek (Fázis 4)
+### Jelenlegi Komponensek (Fázis 5 - Professzionális Perzisztens Memória)
 
 #### 1. OpenAI Agents SDK (Core AI)
 - **Fájl**: `src/lib/agent-sdk/OpenAIAgentPOC.ts`
@@ -46,15 +46,17 @@ Ez a fájl összegyűjti az összes szükséges dokumentációt és referenciát
 - **Dokumentáció**: `openaichatgptdoc.md`
 - **Állapot**: ✅ Működik
 
-#### 2. SimpleMemoryManager
-- **Fájl**: `src/lib/hybrid/SimpleMemoryManager.ts`
-- **Szerepe**: Beszélgetések memória tárolása
-- **Technológia**: `Map<string, ConversationEntry[]>`
+#### 2. PersistentMemoryManager (v4.0) ✅ **ÚJ!**
+- **Fájl**: `src/lib/hybrid/PersistentMemoryManager.ts`
+- **Szerepe**: Professzionális perzisztens memória
+- **Technológia**: Prisma + SQLite + In-memory Cache
 - **Funkciók**:
-  - Kulcsszó-alapú keresés
-  - Relevancia pontozás
-  - Session-based perzisztencia
-- **Állapot**: ✅ Működik - 100% hibabiztos
+  - Database backend (AgentConversation + AgentMemory)
+  - Cache layer (5 perc expiry)
+  - Long-term memory (pattern recognition)
+  - Hybrid fallback mechanizmusok
+  - 500 beszélgetés/user limit
+- **Állapot**: ✅ Production-ready - 100% perzisztens
 
 #### 3. SimpleContextLoader
 - **Fájl**: `src/lib/hybrid/SimpleContextLoader.ts`
@@ -67,25 +69,28 @@ Ez a fájl összegyűjti az összes szükséges dokumentációt és referenciát
   - Hibabiztos működés
 - **Állapot**: ✅ Működik - 4 útmutató betöltve
 
-#### 4. SimpleHybridController (v3.0)
+#### 4. SimpleHybridController (v4.0) ✅ **FRISSÍTVE!**
 - **Fájl**: `src/lib/hybrid/SimpleHybridController.ts`
-- **Szerepe**: Memory + Context + OpenAI SDK koordináció
+- **Szerepe**: PersistentMemory + Context + OpenAI SDK koordináció
 - **Verziók**:
   - v1.0: Alapvető wrapper
   - v2.0: Memory integráció
   - v3.0: Memory + Context integráció
-- **Állapot**: ✅ Működik - Teljes hibrid architektúra
+  - v4.0: **Perzisztens memória + Enhanced orchestration**
+- **Állapot**: ✅ Production-ready - Teljes perzisztens hibrid architektúra
 
 ### Működési Architektúra
 
 ```
-User Query → SimpleHybridController → {
-  1. SimpleMemoryManager (korábbi beszélgetések)
+User Query → SimpleHybridController v4.0 → {
+  1. PersistentMemoryManager (DB + Cache hybrid)
+     ├── Cache check (5 perc expiry)
+     └── Database load (Prisma + SQLite)
   2. SimpleContextLoader (content guides)
-  3. Combined Context építés
-  4. OpenAI SDK (AI válasz)
-  5. Memory mentés
-  6. Response visszaadás
+  3. Combined Context építés (Memory + Context)
+  4. OpenAI SDK (AI válasz enhanced contexttal)
+  5. Persistent Memory mentés (DB + Cache + Long-term)
+  6. Response visszaadás (confidence: 0.95)
 }
 ```
 
@@ -172,19 +177,27 @@ User Query → SimpleHybridController → {
 ### Befejezett Fázisok
 1. **✅ Fázis 1**: Alaprendszer (OpenAI SDK)
 2. **✅ Fázis 2**: SimpleHybridController
-3. **✅ Fázis 3**: SimpleMemoryManager
+3. **✅ Fázis 3**: SimpleMemoryManager  
 4. **✅ Fázis 4**: SimpleContextLoader
+5. **✅ Fázis 5**: **Professzionális Perzisztens Memória** (PersistentMemoryManager)
 
 ### Következő Fázisok
-5. **🔄 Fázis 5**: Unas API integráció
-6. **🚀 Fázis 6**: PersonalityEngine
-7. **🔮 Fázis 7**: Perzisztens memória
+6. **🔄 Fázis 6**: **Unas API integráció** (webáruház adatok) - **IN PROGRESS**
+   - ✅ UnasApiClient (XML API kommunikáció)
+   - ✅ UnasProductService (termékadatok kezelése)
+   - ✅ API endpoint (/api/unas/test)
+   - ✅ Environment variables (UNAS_API_KEY)
+   - 🔄 DeepO agent integráció
+7. **🚀 Fázis 7**: PersonalityEngine (T-DEPO brand voice)
+8. **🔮 Fázis 8**: Production deployment (AlmaLinux8)
 
 ### Teljesítmény Mutatók
-- **Memory működés**: 100% hibabiztos
+- **Perzisztens memória**: 100% működőképes (tesztelve: oldal frissítés, szerver restart)
+- **Database backend**: Production-ready Prisma + SQLite
+- **Cache teljesítmény**: 5 perc expiry, hibrid fallback
 - **Context loading**: 4 útmutató betöltve
-- **OpenAI SDK integráció**: Sikeres válaszok
-- **Hibakezelés**: Garantált válasz minden esetben
+- **OpenAI SDK integráció**: Enhanced válaszok (confidence: 0.95)
+- **Hibakezelés**: Multi-layer fallback minden szinten
 
 ---
 
