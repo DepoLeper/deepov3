@@ -1,24 +1,27 @@
 import { runDeepOAgent } from '@/lib/agent-sdk/OpenAIAgentPOC';
 import { SimpleMemoryManager, MemorySearchResult } from './SimpleMemoryManager';
+import { SimpleContextLoader, ContextSearchResult } from './SimpleContextLoader';
 
 /**
- * SimpleHybridController - Minimális hibrid megközelítés
+ * SimpleHybridController - Hibrid megközelítés Memory + Context integrációval
  * 
- * Ez egy egyszerű wrapper a működő OpenAI SDK körül,
- * ahova fokozatosan hozzáadhatjuk a saját komponenseinket.
- * 
- * FÁZIS 2: Memory integráció hozzáadva
+ * FÁZIS 4: SimpleContextLoader integráció hozzáadva
+ * - Memory: Korábbi beszélgetések
+ * - Context: content_guides.md útmutatók
+ * - OpenAI SDK: Core AI functionality
  */
 export class SimpleHybridController {
   private memoryManager: SimpleMemoryManager;
+  private contextLoader: SimpleContextLoader;
   
   constructor() {
     console.log('🚀 SimpleHybridController inicializálva');
     this.memoryManager = new SimpleMemoryManager();
+    this.contextLoader = new SimpleContextLoader();
   }
 
   /**
-   * Fő message processing - OpenAI SDK + Memory integráció
+   * Fő message processing - OpenAI SDK + Memory + Context integráció
    */
   async processMessage(message: string, userId: string, sessionId: string): Promise<{
     response: string;
@@ -32,20 +35,23 @@ export class SimpleHybridController {
       // 1. Memory keresés - releváns korábbi beszélgetések
       const memoryResult = await this.memoryManager.searchRelevantMemories(userId, message);
       
-      // 2. Memory context készítése
-      const memoryContext = this.buildMemoryContext(memoryResult);
+      // 2. Context loading - releváns útmutatók
+      const contextResult = await this.contextLoader.loadContext(message);
       
-      // 3. Enhanced message az OpenAI SDK számára
-      const enhancedMessage = this.enhanceMessageWithMemory(message, memoryContext);
+      // 3. Kombinált context építése
+      const combinedContext = this.buildCombinedContext(memoryResult, contextResult);
       
-      // 4. OpenAI SDK hívás (memory context-tel)
+      // 4. Enhanced message az OpenAI SDK számára
+      const enhancedMessage = this.enhanceMessageWithContext(message, combinedContext);
+      
+      // 5. OpenAI SDK hívás (memory + context)
       const result = await runDeepOAgent(enhancedMessage, 'main');
       
       if (!result.success) {
         throw new Error(result.error || 'OpenAI Agent hiba');
       }
 
-      // 5. Beszélgetés mentése a memóriába
+      // 6. Beszélgetés mentése a memóriába
       await this.memoryManager.saveConversation(
         userId,
         sessionId,
@@ -53,16 +59,17 @@ export class SimpleHybridController {
         result.response // agent válasz
       );
 
-      // 6. Memory stats lekérése
+      // 7. Status információk
       const memoryStats = this.memoryManager.getMemoryStats(userId);
+      const contextStatus = this.contextLoader.getStatus();
       const globalMemoryStatus = SimpleMemoryManager.getGlobalMemoryStatus();
       
       console.log(`🌐 Globális memória: ${globalMemoryStatus.totalUsers} users, ${globalMemoryStatus.totalConversations} total conversations`);
 
-      // 7. Enhanced válasz formázása
+      // 8. Enhanced válasz formázása
       const response = {
         response: result.response,
-        suggestions: this.generateContextualSuggestions(memoryResult, message),
+        suggestions: this.generateContextualSuggestions(memoryResult, contextResult, message),
         confidence: 0.9,
         metadata: {
           agent: result.agent,
@@ -76,11 +83,17 @@ export class SimpleHybridController {
             keywords: memoryResult.keywords,
             summary: memoryResult.summary,
             stats: memoryStats
+          },
+          context: {
+            success: contextResult.success,
+            guidesUsed: contextResult.guidesUsed,
+            error: contextResult.error,
+            status: contextStatus
           }
         }
       };
 
-      console.log('✅ SimpleHybrid válasz sikeres (memory-vel)');
+      console.log('✅ SimpleHybrid válasz sikeres (memory + context)');
       return response;
 
     } catch (error) {
@@ -91,71 +104,102 @@ export class SimpleHybridController {
   }
 
   /**
-   * Memory context építése a releváns beszélgetésekből
+   * Kombinált context építése Memory + Content Guides alapján
    */
-  private buildMemoryContext(memoryResult: MemorySearchResult): string {
-    if (memoryResult.relevantConversations.length === 0) {
-      return 'Nincs korábbi releváns beszélgetés.';
+  private buildCombinedContext(memoryResult: MemorySearchResult, contextResult: ContextSearchResult): string {
+    const contextParts: string[] = [];
+    
+    // 1. Memory Context (ha van)
+    if (memoryResult.relevantConversations.length > 0) {
+      contextParts.push('═══ MEMÓRIA KONTEXTUS ═══');
+      contextParts.push(`${memoryResult.summary}\n`);
+      
+      // Top 2 legfontosabb korábbi beszélgetés
+      memoryResult.relevantConversations.slice(0, 2).forEach((conv, index) => {
+        const timeAgo = this.getTimeAgo(conv.timestamp);
+        contextParts.push(
+          `${index + 1}. ${timeAgo}:`,
+          `   "${conv.userMessage}" → "${conv.assistantMessage}"`
+        );
+      });
+      
+      contextParts.push(''); // üres sor
     }
-
-    const contextParts = [
-      `MEMÓRIA KONTEXTUS (${memoryResult.relevantConversations.length} releváns beszélgetés):`,
-      memoryResult.summary,
-      ''
-    ];
-
-    // Top 3 legfontosabb korábbi beszélgetés
-    memoryResult.relevantConversations.slice(0, 3).forEach((conv, index) => {
-      const timeAgo = this.getTimeAgo(conv.timestamp);
-      contextParts.push(
-        `${index + 1}. ${timeAgo}:`,
-        `   User: "${conv.userMessage}"`,
-        `   DeepO: "${conv.assistantMessage}"`,
-        ''
-      );
-    });
-
+    
+    // 2. Content Guides Context (ha van)
+    if (contextResult.success && contextResult.context) {
+      contextParts.push('═══ ÚTMUTATÓ KONTEXTUS ═══');
+      contextParts.push(`Használt útmutatók: ${contextResult.guidesUsed.join(', ')}\n`);
+      contextParts.push(contextResult.context);
+      contextParts.push(''); // üres sor
+    }
+    
+    // 3. Ha nincs semmi kontextus
+    if (contextParts.length === 0) {
+      return 'Nincs elérhető kontextus információ.';
+    }
+    
     return contextParts.join('\n');
   }
 
   /**
-   * Message enhanced-elése memory context-tel
+   * Message enhanced-elése kombinált context-tel
    */
-  private enhanceMessageWithMemory(message: string, memoryContext: string): string {
-    if (memoryContext === 'Nincs korábbi releváns beszélgetés.') {
-      return message; // Nem enhanced-eljük, ha nincs memória
+  private enhanceMessageWithContext(message: string, combinedContext: string): string {
+    if (combinedContext === 'Nincs elérhető kontextus információ.') {
+      return message; // Nem enhanced-eljük, ha nincs kontextus
     }
 
-    return `${memoryContext}
+    return `${combinedContext}
 
-JELENLEGI KÉRDÉS:
+═══ JELENLEGI KÉRDÉS ═══
 ${message}
 
-INSTRUKCIÓ: A fenti memória kontextus alapján válaszolj, hivatkozz korábbi beszélgetésekre, ha releváns.`;
+INSTRUKCIÓ: A fenti kontextus alapján (memória + útmutatók) válaszolj. Használd a releváns információkat és hivatkozz korábbi beszélgetésekre, ha van ilyen.`;
   }
 
   /**
-   * Kontextuális javaslatok generálása
+   * Kontextuális javaslatok generálása Memory + Context alapján
    */
-  private generateContextualSuggestions(memoryResult: MemorySearchResult, currentMessage: string): string[] {
-    const baseSuggestions = [
-      'Elemezzük SEO szempontból?',
-      'Készítsünk belőle blog cikket?',
-      'További információkat keresel?'
-    ];
+  private generateContextualSuggestions(
+    memoryResult: MemorySearchResult,
+    contextResult: ContextSearchResult, 
+    currentMessage: string
+  ): string[] {
+    const suggestions: string[] = [];
 
-    // Ha van memória, kontextuális javaslatokat adunk
+    // Memory alapú javaslatok
     if (memoryResult.relevantConversations.length > 0) {
       const recentTopics = memoryResult.keywords.slice(0, 2);
-      
       if (recentTopics.length > 0) {
-        baseSuggestions.unshift(`Folytassuk a ${recentTopics[0]} témát?`);
+        suggestions.push(`Folytassuk a ${recentTopics[0]} témát?`);
       }
-      
-      baseSuggestions.push('Mit beszéltünk erről korábban?');
+      suggestions.push('Mit beszéltünk erről korábban?');
     }
 
-    return baseSuggestions.slice(0, 4); // Max 4 javaslat
+    // Context alapú javaslatok
+    if (contextResult.success && contextResult.guidesUsed.length > 0) {
+      if (contextResult.guidesUsed.some(g => g.toLowerCase().includes('blog'))) {
+        suggestions.push('Készítsünk belőle blog cikket?');
+      }
+      if (contextResult.guidesUsed.some(g => g.toLowerCase().includes('seo'))) {
+        suggestions.push('Elemezzük SEO szempontból?');
+      }
+      if (contextResult.guidesUsed.some(g => g.toLowerCase().includes('social'))) {
+        suggestions.push('Social media tartalmat is készítsünk?');
+      }
+    }
+
+    // Alapértelmezett javaslatok
+    if (suggestions.length === 0) {
+      suggestions.push(
+        'Elmagyarázod részletesebben?',
+        'További információkat keresel?',
+        'Készítsünk belőle tartalmat?'
+      );
+    }
+
+    return suggestions.slice(0, 4); // Max 4 javaslat
   }
 
   /**
@@ -184,13 +228,34 @@ INSTRUKCIÓ: A fenti memória kontextus alapján válaszolj, hivatkozz korábbi 
   }
 
   /**
-   * Health check
+   * Health check - most context status-szal is
    */
   getStatus(): { status: string; version: string; components: string[] } {
+    const contextStatus = this.contextLoader.getStatus();
+    const memoryStatus = SimpleMemoryManager.getGlobalMemoryStatus();
+    
     return {
-      status: 'ok',
-      version: '2.0.0-memory',
-      components: ['OpenAI Agents SDK', 'SimpleMemoryManager']
+      status: contextStatus.loadError ? 'degraded' : 'ok',
+      version: '3.0.0-memory-context',
+      components: [
+        'OpenAI Agents SDK',
+        'SimpleMemoryManager',
+        `SimpleContextLoader (${contextStatus.totalGuides} útmutató)`
+      ]
+    };
+  }
+
+  /**
+   * Debug információk lekérése
+   */
+  async getDebugInfo() {
+    const contextDebug = await this.contextLoader.getDebugInfo();
+    const memoryStatus = SimpleMemoryManager.getGlobalMemoryStatus();
+    
+    return {
+      memory: memoryStatus,
+      context: contextDebug,
+      integration: 'SimpleHybridController v3.0'
     };
   }
 
