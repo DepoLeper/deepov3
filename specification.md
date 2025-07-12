@@ -8,6 +8,8 @@
 ### Jelenlegi Állapot (2025. július 12.)
 **✅ FÁZIS 5 BEFEJEZVE - Professzionális Perzisztens Memória Architektúra**
 
+**🔄 FÁZIS 6 RESET - Új Unas API Stratégia**
+
 ## 🎯 Projekt Célkitűzések
 
 ### Fő Cél
@@ -113,10 +115,12 @@ AgentMemory:
 
 ### 🔄 Következő Fázisok
 
-#### **Fázis 6: Unas API Integráció** (Tervezett)
-- Webáruház adatok integráció
-- Termékek és kategóriák
-- Automatikus tartalomgenerálás
+#### **Fázis 6: Unas API Integráció v3.0** (Új stratégia - 2025.07.12)
+**Megközelítés**: 1 termék alapú fejlesztés
+- **Minimális UnasApiClient** - csak 1 termék lekérése
+- **Teszt alkalmazás** - minden API részlet vizsgálata  
+- **1 termék perzisztálása** - egyszerű adatbázis mentés
+- **Fokozatos skálázás** - hibamentes működés után
 
 #### **Fázis 7: PersonalityEngine** (Tervezett)
 - T-DEPO brand voice implementáció

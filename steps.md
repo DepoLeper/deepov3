@@ -132,22 +132,31 @@ PersistentMemoryManager:
 
 ---
 
-## 🔄 Fázis 6: Unas API Integráció (KÖVETKEZIK)
+## ✅ Fázis 6: Unas API Integráció v2.0 (TÖRLÉS ÉS ÚJRAKEZDÉS - 2025.07.12)
 
-### **Cél:** Webáruház adatok integrálása a DeepO rendszerbe
-- [ ] **Unas API dokumentáció tanulmányozása**
-- [ ] **API kapcsolat implementálása**
-- [ ] **Termékadatok szinkronizálása**
-- [ ] **Kategória struktúra feldolgozása**
-- [ ] **Automatikus tartalomgenerálás termékekhez**
-- [ ] **SEO optimalizált termékleírások**
-- [ ] **Készletadatok integráció**
+### **Reset Indoka**
+A korábbi v2.0 implementáció túl komplex volt és timeout/scheduler problémákhoz vezetett. Git reset --hard de6fa4a-ra visszatérve a Phase 5 COMPLETE állapothoz.
 
-### **Várható Eredmények:**
-- **Valós webáruház adatok** - Élő termékadatok
-- **Automatikus SEO tartalom** - Termékspecifikus optimalizálás
-- **Inventory awareness** - Készletfüggő kommunikáció
-- **Category intelligence** - Kategória-specifikus javaslatok
+### **Új Stratégia: 1 Termék Alapú Fejlesztés**
+- ❌ **Korábbi megközelítés**: Komplex DB+Cache hibrid, scheduler, batch sync (túl bonyolult)
+- ✅ **Új megközelítés**: 
+  1. **Nagyon kis lépésekben** haladunk
+  2. **1db termék tökéletes szinkronizálása** minden adattal  
+  3. **Minden részletre kiterjedő API teszt alkalmazás**
+  4. **Skálázás csak utána**
+
+### **Következő Fejlesztési Lépések:**
+- [ ] **Minimális UnasApiClient** - csak 1 termék lekérése
+- [ ] **Teszt alkalmazás** - minden API részlet vizsgálata
+- [ ] **1 termék perzisztálása** - egyszerű adatbázis mentés
+- [ ] **Teljes termékadatok** - minden mező feldolgozása
+- [ ] **Hibamentes működés** - 100% megbízhatóság 1 termékkel
+- [ ] **Fokozatos skálázás** - 5→10→50→100 termék
+
+### **Tanulságok:**
+- Working Backwards elv: működő rendszerből kiindulva
+- Kis lépések > nagy architektúra
+- 1 termék tökéletesen > 1000 termék hibásan
 
 ---
 
