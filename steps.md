@@ -1,4 +1,4 @@
-# DeepO: Intelligens Marketing Asszisztens - Fejlesztési Lépések
+# Steps - DeepO v3 Projekt
 
 Ez a dokumentum a DeepO intelligens marketing asszisztens fejlesztési lépéseit és azok aktuális állapotát követi.
 
@@ -132,31 +132,41 @@ PersistentMemoryManager:
 
 ---
 
-## ✅ Fázis 6: Unas API Integráció v2.0 (TÖRLÉS ÉS ÚJRAKEZDÉS - 2025.07.12)
+## Phase 6: Unas API Integráció v3.0 🔄 **FOLYAMATBAN**
 
-### **Reset Indoka**
-A korábbi v2.0 implementáció túl komplex volt és timeout/scheduler problémákhoz vezetett. Git reset --hard de6fa4a-ra visszatérve a Phase 5 COMPLETE állapothoz.
+**Megközelítés:** Nagyon kis lépésekben, 1 termék alapú fejlesztés
 
-### **Új Stratégia: 1 Termék Alapú Fejlesztés**
-- ❌ **Korábbi megközelítés**: Komplex DB+Cache hibrid, scheduler, batch sync (túl bonyolult)
-- ✅ **Új megközelítés**: 
-  1. **Nagyon kis lépésekben** haladunk
-  2. **1db termék tökéletes szinkronizálása** minden adattal  
-  3. **Minden részletre kiterjedő API teszt alkalmazás**
-  4. **Skálázás csak utána**
+### ✅ Elkészült lépések:
 
-### **Következő Fejlesztési Lépések:**
-- [ ] **Minimális UnasApiClient** - csak 1 termék lekérése
-- [ ] **Teszt alkalmazás** - minden API részlet vizsgálata
-- [ ] **1 termék perzisztálása** - egyszerű adatbázis mentés
-- [ ] **Teljes termékadatok** - minden mező feldolgozása
-- [ ] **Hibamentes működés** - 100% megbízhatóság 1 termékkel
-- [ ] **Fokozatos skálázás** - 5→10→50→100 termék
+1. **✅ Minimális UnasApiClient létrehozása**
+   - Token hiba javítva (parsed.Login.Token)
+   - Egyszerűsített getProduct metódus
+   - XML alapú SOAP kommunikáció
 
-### **Tanulságok:**
-- Working Backwards elv: működő rendszerből kiindulva
-- Kis lépések > nagy architektúra
-- 1 termék tökéletesen > 1000 termék hibásan
+2. **✅ Konkrét termék ID-k meghatározása**
+   - 5 termék található az áruházban
+   - ID-k: 1306870988, 1306869978, 1306862343, 1303516158, 1303329663
+
+3. **✅ Teszt alkalmazás fejlesztése**
+   - Debug teszt endpoint működik
+   - Nyers XML teszt sikeres
+   - Simple product teszt működik
+
+4. **✅ Alapvető termék adatok lekérése**
+   - Lista lekérés: 5 termék
+   - Konkrét termék: ID alapján
+   - Mezők: id, sku, name, unit, priceNet, priceGross
+
+### 🔄 Következő lépések:
+
+5. **Minden termék mező feldolgozása**
+   - Kategória, készlet, státusz
+   - Képek, leírások
+   - Paraméterek
+
+6. **Adatbázis perzisztálás**
+   - Prisma séma bővítése
+   - Termék mentés/frissítés
 
 ---
 
