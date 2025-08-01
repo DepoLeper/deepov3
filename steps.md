@@ -117,14 +117,14 @@ Ez a dokumentum a DeepO intelligens marketing asszisztens fejlesztési lépései
 - [x] **Minden termék mező feldolgozása** (képek, leírások, paraméterek)
 - [x] **100% hibamentes működés garantálása 1 termékkel**
 - [x] **API tanulságok dokumentálása** (`unas-api-learnings.md`)
-- [ ] **Adatbázis perzisztálás - Prisma séma bővítése**
-- [ ] **Termék mentés és frissítés logika**
+- [x] **Adatbázis perzisztálás - Prisma séma bővítése**
+- [x] **Termék mentés és frissítés logika**
 - [ ] **Időzített szinkronizáció (cron job)**
 - [ ] **Inkrementális frissítés (változás detektálás)**
 - [ ] **Tömeges termék import**
 
-**Eredmény:** UnasApiClient v1.0, Product Viewer UI, valós akciós ár felismerés
-**Státusz:** **TERMÉK ADATOK FELDOLGOZÁSA COMPLETE**
+**Eredmény:** UnasApiClient v1.0, Product Viewer UI, valós akciós ár felismerés, DB perzisztálás
+**Státusz:** **ADATBÁZIS PERZISZTÁLÁS COMPLETE**
 
 ---
 
