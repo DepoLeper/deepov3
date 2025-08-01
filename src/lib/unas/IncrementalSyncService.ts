@@ -25,6 +25,12 @@ export interface IncrementalSyncConfig {
   maxApiCalls: number;
   // Log szint
   logLevel: 'info' | 'debug' | 'error';
+  
+  // Smart Discovery beállítások
+  enableDiscovery?: boolean;         // Új termék keresés engedélyezése
+  discoveryFrequency?: number;       // Minden N. futásnál discovery (alapértelmezett: 5)
+  discoveryBatchSize?: number;       // Hány új terméket keresünk (alapértelmezett: 30)
+  discoveryFromLatest?: boolean;     // Legfrissebb termékeket keresse-e (alapértelmezett: true)
 }
 
 export class IncrementalSyncService {
@@ -32,6 +38,9 @@ export class IncrementalSyncService {
   private apiClient: UnasApiClient;
   private syncService: UnasProductSyncService;
   private config: IncrementalSyncConfig;
+  
+  // Discovery counter - hányszor futott már
+  private syncRunCounter: number = 0;
 
   constructor(
     apiClient: UnasApiClient,
@@ -48,6 +57,13 @@ export class IncrementalSyncService {
       minCheckInterval: 30, // 30 perc
       maxApiCalls: 100,
       logLevel: 'info',
+      
+      // Smart Discovery defaults
+      enableDiscovery: true,          // Discovery alapból engedélyezve
+      discoveryFrequency: 5,          // Minden 5. futásnál
+      discoveryBatchSize: 30,         // 30 legfrissebb termék ellenőrzése
+      discoveryFromLatest: true,      // Legfrissebb termékeket keresse
+      
       ...config
     };
     
@@ -59,6 +75,8 @@ export class IncrementalSyncService {
    */
   async performIncrementalSync(): Promise<IncrementalSyncResult> {
     const startTime = Date.now();
+    this.syncRunCounter++; // Counter növelése
+    
     const result: IncrementalSyncResult = {
       checked: 0,
       changed: 0,
@@ -74,23 +92,46 @@ export class IncrementalSyncService {
     };
 
     try {
-      this.log('info', 'Inkrementális szinkronizáció indítása...');
+      this.log('info', `Inkrementális szinkronizáció indítása... (futás #${this.syncRunCounter})`);
 
-      // 1. Adatbázisban lévő termékek lekérése
-      const existingProducts = await this.getExistingProducts();
-      this.log('info', `${existingProducts.length} meglévő termék az adatbázisban`);
-
-      if (existingProducts.length === 0) {
-        this.log('info', 'Nincs meglévő termék, inkrementális szinkronizáció kihagyása');
-        result.duration = Date.now() - startTime;
-        return result;
+      // 1. Smart Discovery ellenőrzése
+      const shouldRunDiscovery = this.config.enableDiscovery && 
+                                  this.syncRunCounter % (this.config.discoveryFrequency || 5) === 1;
+      
+      if (shouldRunDiscovery) {
+        this.log('info', `🔍 Discovery mód: új termékek keresése (minden ${this.config.discoveryFrequency}. futásnál)`);
+        const discoveryResult = await this.performDiscovery();
+        
+        // Discovery eredményeinek hozzáadása
+        result.checked += discoveryResult.checked;
+        result.synced += discoveryResult.synced;
+        result.errors += discoveryResult.errors;
+        result.details.checkedProducts.push(...discoveryResult.details.checkedProducts);
+        result.details.syncResults.push(...discoveryResult.details.syncResults);
+        result.details.errors.push(...discoveryResult.details.errors);
+        
+        this.log('info', `Discovery befejezve: ${discoveryResult.checked} ellenőrizve, ${discoveryResult.synced} szinkronizálva`);
       }
 
-      // 2. Batch-wise termék ellenőrzés
-      const batches = this.createBatches(existingProducts, this.config.batchSize);
-      this.log('info', `${batches.length} batch lesz feldolgozva (${this.config.batchSize} termék/batch)`);
+      // 2. Adatbázisban lévő termékek lekérése (hagyományos incremental)
+      const existingProducts = await this.getExistingProducts();
+      this.log('info', `${existingProducts.length} meglévő termék ellenőrzése változásra`);
 
-      let apiCallCount = 0;
+      if (existingProducts.length === 0) {
+        this.log('info', 'Nincs meglévő termék az adatbázisban');
+        if (!shouldRunDiscovery) {
+          this.log('info', 'Inkrementális szinkronizáció kihagyása (nincs termék és nincs discovery)');
+          result.duration = Date.now() - startTime;
+          return result;
+        }
+      }
+
+      // 3. Hagyományos incremental: meglévő termékek batch-wise ellenőrzése
+      if (existingProducts.length > 0) {
+        const batches = this.createBatches(existingProducts, this.config.batchSize);
+        this.log('info', `${batches.length} batch lesz feldolgozva (${this.config.batchSize} termék/batch)`);
+
+        let apiCallCount = 0;
       
       for (let i = 0; i < batches.length; i++) {
         if (apiCallCount >= this.config.maxApiCalls) {
@@ -141,6 +182,7 @@ export class IncrementalSyncService {
           await this.sleep(500); // 500ms
         }
       }
+      } // Existing products if statement lezárása
 
       result.duration = Date.now() - startTime;
       this.log('info', `Inkrementális szinkronizáció befejezve: ${result.checked} ellenőrizve, ${result.changed} változott, ${result.synced} szinkronizálva, ${result.errors} hiba (${result.duration}ms)`);
@@ -300,6 +342,103 @@ export class IncrementalSyncService {
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Discovery - új termékek keresése az API-ban
+   */
+  private async performDiscovery(): Promise<IncrementalSyncResult> {
+    const discoveryResult: IncrementalSyncResult = {
+      checked: 0,
+      changed: 0,
+      synced: 0,
+      errors: 0,
+      duration: 0,
+      details: {
+        checkedProducts: [],
+        changedProducts: [],
+        syncResults: [],
+        errors: []
+      }
+    };
+
+    try {
+      const discoveryStartTime = Date.now();
+      const batchSize = this.config.discoveryBatchSize || 30;
+      
+      this.log('info', `🔍 Discovery: ${batchSize} legfrissebb termék lekérése az API-ból...`);
+
+      // Termékek lekérése az API-ból (legfrissebb termékek)
+      const apiProducts = await this.apiClient.getProductList(batchSize);
+      discoveryResult.checked = apiProducts.length;
+      
+      this.log('info', `Discovery: ${apiProducts.length} termék lekérve az API-ból`);
+
+      if (apiProducts.length === 0) {
+        this.log('info', 'Discovery: Nincs termék az API válaszban');
+        discoveryResult.duration = Date.now() - discoveryStartTime;
+        return discoveryResult;
+      }
+
+      // Meglévő termékek ellenőrzése adatbázisban
+      const existingIds = await this.prisma.unasProduct.findMany({
+        select: { id: true },
+        where: {
+          id: { in: apiProducts.map(p => p.id) }
+        }
+      });
+      
+      const existingIdSet = new Set(existingIds.map(p => p.id));
+
+      // Új termékek szűrése
+      const newProducts = apiProducts.filter(product => !existingIdSet.has(product.id));
+      
+      this.log('info', `Discovery: ${newProducts.length} új termék találva, ${existingIds.length} már létezik`);
+
+      // Új termékek szinkronizálása
+      if (newProducts.length > 0) {
+        for (const product of newProducts) {
+          try {
+            discoveryResult.details.checkedProducts.push(product.id);
+            
+            this.log('debug', `🆕 Új termék szinkronizálása: ${product.id}`);
+            const syncResult = await this.syncService.syncSingleProduct(product.id);
+            
+            if (syncResult.success) {
+              discoveryResult.synced++;
+              discoveryResult.details.syncResults.push(syncResult);
+              this.log('info', `✅ Új termék mentve: ${product.id} - ${syncResult.product?.name || 'Ismeretlen'}`);
+            } else {
+              discoveryResult.errors++;
+              discoveryResult.details.errors.push({
+                productId: product.id,
+                error: syncResult.error || 'Ismeretlen hiba'
+              });
+              this.log('error', `❌ Discovery sync hiba: ${product.id} - ${syncResult.error}`);
+            }
+          } catch (error) {
+            discoveryResult.errors++;
+            discoveryResult.details.errors.push({
+              productId: product.id,
+              error: error.message
+            });
+            this.log('error', `❌ Discovery exception: ${product.id} - ${error.message}`);
+          }
+        }
+      }
+
+      discoveryResult.duration = Date.now() - discoveryStartTime;
+      return discoveryResult;
+
+    } catch (error) {
+      this.log('error', `Discovery hiba: ${error.message}`);
+      discoveryResult.errors++;
+      discoveryResult.details.errors.push({
+        productId: 'discovery',
+        error: error.message
+      });
+      return discoveryResult;
+    }
   }
 
   /**

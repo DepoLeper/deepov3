@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 interface ProductViewerData {
   success: boolean;
@@ -11,14 +12,18 @@ interface ProductViewerData {
 }
 
 export default function ProductViewer() {
-  const [productId, setProductId] = useState('1306870988');
+  const searchParams = useSearchParams();
+  const urlProductId = searchParams.get('id');
+  
+  const [productId, setProductId] = useState(urlProductId || '1306870988');
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ProductViewerData | null>(null);
 
-  const loadProduct = async () => {
+  const loadProduct = async (selectedProductId?: string) => {
+    const idToLoad = selectedProductId || productId;
     setLoading(true);
     try {
-      const res = await fetch(`/api/unas/test-product-full?id=${productId}`);
+      const res = await fetch(`/api/unas/test-product-full?id=${idToLoad}`);
       const json = await res.json();
       setData(json);
     } catch (error) {
@@ -28,38 +33,47 @@ export default function ProductViewer() {
     }
   };
 
+  // Load URL parameter product on mount
   useEffect(() => {
-    loadProduct();
-  }, []);
+    if (urlProductId) {
+      setProductId(urlProductId);
+      loadProduct(urlProductId);
+    } else {
+      loadProduct();
+    }
+  }, [urlProductId]);
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">🛍️ Unas Termék Részletek</h1>
-
-      {/* Termék választó */}
-      <div className="mb-8 bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">Termék kiválasztása</h2>
-        <div className="flex gap-4">
-          <select 
-            value={productId} 
-            onChange={(e) => setProductId(e.target.value)}
-            className="flex-1 p-2 border rounded"
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold">🛍️ Unas Termék Részletek</h1>
+        {urlProductId && (
+          <a
+            href="/admin/database"
+            className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
           >
-            <option value="1306870988">Jegyzettömb (1306870988)</option>
-            <option value="1306869978">Szemüvegtörlő (1306869978)</option>
-            <option value="1306862343">Bögre (1306862343)</option>
-            <option value="1303516158">Smart Pack (1303516158)</option>
-            <option value="1303329663">Core Pack (1303329663)</option>
-          </select>
-          <button 
-            onClick={loadProduct}
-            disabled={loading}
-            className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-          >
-            {loading ? 'Betöltés...' : 'Lekérés'}
-          </button>
-        </div>
+            ← Vissza az adatbázishoz
+          </a>
+        )}
       </div>
+
+      {/* Loading indicator or product info */}
+      {loading && (
+        <div className="mb-8 bg-blue-50 border border-blue-200 p-6 rounded-lg">
+          <div className="flex items-center">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
+            <p className="text-blue-800">Termék adatok betöltése...</p>
+          </div>
+        </div>
+      )}
+      
+      {data?.success && (
+        <div className="mb-8 bg-green-50 border border-green-200 p-4 rounded-lg">
+          <p className="text-green-800">
+            <span className="font-medium">Betöltött termék:</span> {data.summary?.basic.name} (ID: {productId})
+          </p>
+        </div>
+      )}
 
       {/* Eredmény */}
       {data && (

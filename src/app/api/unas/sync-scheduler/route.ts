@@ -17,7 +17,13 @@ function getScheduler(): SyncScheduler {
       syncMode: (process.env.UNAS_SYNC_MODE as 'single' | 'incremental' | 'full') || DEFAULT_SYNC_CONFIG.syncMode,
       incrementalConfig: {
         batchSize: parseInt(process.env.UNAS_SYNC_BATCH_SIZE || '10'),
-        maxApiCalls: parseInt(process.env.UNAS_SYNC_MAX_API_CALLS || '50')
+        maxApiCalls: parseInt(process.env.UNAS_SYNC_MAX_API_CALLS || '50'),
+        
+        // Smart Discovery konfiguráció
+        enableDiscovery: process.env.UNAS_DISCOVERY_ENABLED !== 'false',
+        discoveryFrequency: parseInt(process.env.UNAS_DISCOVERY_FREQUENCY || '5'),
+        discoveryBatchSize: parseInt(process.env.UNAS_DISCOVERY_BATCH_SIZE || '30'),
+        discoveryFromLatest: true
       },
       bulkConfig: {
         batchSize: parseInt(process.env.UNAS_BULK_BATCH_SIZE || '20'),

@@ -32,6 +32,11 @@ export default function SchedulerPage() {
   const [bulkBatchSize, setBulkBatchSize] = useState(20);
   const [maxProducts, setMaxProducts] = useState(100);
   const [bulkDelay, setBulkDelay] = useState(1000);
+  
+  // Smart Discovery beállítások
+  const [discoveryEnabled, setDiscoveryEnabled] = useState(true);
+  const [discoveryFrequency, setDiscoveryFrequency] = useState(5);
+  const [discoveryBatchSize, setDiscoveryBatchSize] = useState(30);
 
   // Állapot betöltése
   const loadStatus = async () => {
@@ -105,7 +110,13 @@ export default function SchedulerPage() {
       syncMode,
       incrementalConfig: {
         batchSize,
-        maxApiCalls
+        maxApiCalls,
+        
+        // Smart Discovery beállítások
+        enableDiscovery: discoveryEnabled,
+        discoveryFrequency,
+        discoveryBatchSize,
+        discoveryFromLatest: true
       },
       bulkConfig: {
         batchSize: bulkBatchSize,
@@ -347,6 +358,62 @@ export default function SchedulerPage() {
                 <div className="text-xs text-blue-600 mt-1">
                   VIP csomag: max 6000 hívás/óra
                 </div>
+              </div>
+
+              {/* Smart Discovery beállítások */}
+              <div className="border-t border-blue-300 pt-4">
+                <h5 className="font-medium text-blue-900 mb-3">🔍 Smart Discovery (Új termék keresés)</h5>
+                
+                <div className="flex items-center mb-3">
+                  <input
+                    type="checkbox"
+                    id="discoveryEnabled"
+                    checked={discoveryEnabled}
+                    onChange={(e) => setDiscoveryEnabled(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="discoveryEnabled" className="ml-2 block text-sm text-blue-700">
+                    Discovery engedélyezése
+                  </label>
+                </div>
+
+                {discoveryEnabled && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-blue-700 mb-2">
+                        Discovery gyakoriság: (minden {discoveryFrequency}. futásnál)
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="20"
+                        value={discoveryFrequency}
+                        onChange={(e) => setDiscoveryFrequency(parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                      <div className="text-xs text-blue-600 mt-1">
+                        1 = minden futásnál új termékeket is keres
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-blue-700 mb-2">
+                        Discovery batch méret: ({discoveryBatchSize} termék)
+                      </label>
+                      <input
+                        type="range"
+                        min="10"
+                        max="100"
+                        value={discoveryBatchSize}
+                        onChange={(e) => setDiscoveryBatchSize(parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                      <div className="text-xs text-blue-600 mt-1">
+                        Hány legfrissebb terméket ellenőrizzen
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
