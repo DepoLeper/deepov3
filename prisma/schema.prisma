@@ -148,3 +148,76 @@ model ContentAnalysis {
   
   content GeneratedContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
 }
+
+// Unas termékek tárolása
+model UnasProduct {
+  id              String   @id // Unas product ID (not auto-generated)
+  sku             String   @unique
+  name            String
+  unit            String?
+  priceNet        Float
+  priceGross      Float
+  state           String   // 'live', 'draft', 'deleted'
+  createTime      String   // Unix timestamp string from API
+  lastModTime     String   // Unix timestamp string from API
+  
+  // Készlet adatok
+  stock           String?
+  stockStatus     Boolean  @default(false)
+  minimumQty      String?
+  
+  // Kategória adatok
+  categoryId      String?
+  categoryName    String?
+  allCategories   Json?    // Array of categories with id, name, type
+  
+  // Leírások
+  description     String?  @default("")
+  shortDescription String? @default("")
+  
+  // SEO adatok
+  seoTitle        String?
+  seoDescription  String?
+  seoKeywords     String?
+  url             String?
+  sefUrl          String?
+  
+  // Képek
+  imageUrl        String?
+  imageSefUrl     String?
+  imageAlt        String?
+  
+  // Fizikai tulajdonságok
+  weight          String?
+  
+  // Komplex adatok JSON formátumban
+  parameters      Json?    // Array of product parameters
+  specialPrices   Json?    // Array of special prices for customer groups
+  salePrice       Json?    // Active sale price with dates
+  groupSalePrices Json?    // Group-specific sale prices
+  
+  // Szinkronizációs adatok
+  syncedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([sku])
+  @@index([state])
+  @@index([categoryId])
+  @@index([lastModTime])
+}
+
+// Unas szinkronizációs log
+model UnasSyncLog {
+  id            String   @id @default(cuid())
+  syncType      String   // 'full', 'incremental', 'single'
+  status        String   // 'started', 'completed', 'failed'
+  productCount  Int      @default(0)
+  successCount  Int      @default(0)
+  errorCount    Int      @default(0)
+  errorMessages Json?    // Array of error messages
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+  
+  @@index([status])
+  @@index([startedAt])
+}
