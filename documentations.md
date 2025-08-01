@@ -329,9 +329,11 @@ A hibrid architektúra minden lépése monitorozva van:
 - ✅ **Inkrementális sync**: 2 termék, 1.6s alatt, 0 hiba
 - ✅ **Változás detektálás**: 100% pontosság `lastModTime` alapján
 - ✅ **Batch optimalizáció**: 10 termék/batch, max 50 API hívás
-- ✅ **Tömeges import**: 100 termék, 46.8s alatt, 0 hiba
+- ✅ **Tömeges import**: 20 egyedi termék, 8.5s alatt, 0 hiba
 - ✅ **Weight típuskonverzió**: Number→String hibakezelés
 - ✅ **Smart skip logika**: Duplikátumok automatikus kihagyása
+- ✅ **Duplikátum szűrés**: API duplikátumok automatikus észlelése és kiszűrése
+- ✅ **Konzisztens statisztikák**: Helyes számok az adatbázisban és a jelentésekben
 
 ---
 

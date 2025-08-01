@@ -187,6 +187,7 @@ export class BulkImportService {
    */
   private async fetchAllProducts(): Promise<UnasProductBasic[]> {
     const allProducts: UnasProductBasic[] = [];
+    const seenProductIds = new Set<string>(); // Duplikátum szűrés
     let currentOffset = 0;
     let hasMoreProducts = true;
     let batchCount = 0;
@@ -211,7 +212,17 @@ export class BulkImportService {
         const batchDuration = Date.now() - batchStartTime;
 
         if (Array.isArray(products) && products.length > 0) {
-          allProducts.push(...products);
+          // Duplikátumok szűrése
+          const uniqueProducts = products.filter(product => {
+            if (seenProductIds.has(product.id)) {
+              this.log('debug', `Duplikátum kiszűrve: ${product.id}`);
+              return false;
+            }
+            seenProductIds.add(product.id);
+            return true;
+          });
+
+          allProducts.push(...uniqueProducts);
           currentOffset += products.length;
           
           // Progress frissítése
@@ -219,8 +230,14 @@ export class BulkImportService {
           this.progress.lastUpdate = new Date();
           this.updateBatchStats(batchDuration);
 
-          this.log('info', `Batch ${batchCount}: ${products.length} termék lekérve (összesen: ${allProducts.length})`);
+          this.log('info', `Batch ${batchCount}: ${products.length} termék lekérve, ${uniqueProducts.length} egyedi (összesen: ${allProducts.length})`);
 
+          // Ha egyedi termékek száma 0, akkor vége (minden duplikátum)
+          if (uniqueProducts.length === 0) {
+            hasMoreProducts = false;
+            this.log('info', 'Csak duplikátumok jöttek vissza, termék lekérés befejezése');
+          }
+          
           // Ha kevesebb termék jött vissza, mint a batch méret, vége
           if (products.length < this.config.batchSize) {
             hasMoreProducts = false;
