@@ -119,12 +119,12 @@ Ez a dokumentum a DeepO intelligens marketing asszisztens fejlesztési lépései
 - [x] **API tanulságok dokumentálása** (`unas-api-learnings.md`)
 - [x] **Adatbázis perzisztálás - Prisma séma bővítése**
 - [x] **Termék mentés és frissítés logika**
-- [ ] **Időzített szinkronizáció (cron job)**
+- [x] **Időzített szinkronizáció (cron job)**
 - [ ] **Inkrementális frissítés (változás detektálás)**
 - [ ] **Tömeges termék import**
 
-**Eredmény:** UnasApiClient v1.0, Product Viewer UI, valós akciós ár felismerés, DB perzisztálás
-**Státusz:** **ADATBÁZIS PERZISZTÁLÁS COMPLETE**
+**Eredmény:** UnasApiClient v1.0, Product Viewer UI, valós akciós ár felismerés, DB perzisztálás, SyncScheduler v1.0
+**Státusz:** **IDŐZÍTETT SZINKRONIZÁCIÓ COMPLETE**
 
 ---
 
