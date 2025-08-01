@@ -75,7 +75,7 @@ export class UnasProductSyncService {
         imageAlt: product.imageAlt,
         
         // Egyéb
-        weight: product.weight,
+        weight: product.weight ? product.weight.toString() : null,
         parameters: product.parameters ? JSON.parse(JSON.stringify(product.parameters)) : null,
         specialPrices: product.specialPrices ? JSON.parse(JSON.stringify(product.specialPrices)) : null,
         salePrice: product.salePrice ? JSON.parse(JSON.stringify(product.salePrice)) : null,

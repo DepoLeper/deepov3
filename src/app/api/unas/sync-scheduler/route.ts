@@ -18,6 +18,11 @@ function getScheduler(): SyncScheduler {
       incrementalConfig: {
         batchSize: parseInt(process.env.UNAS_SYNC_BATCH_SIZE || '10'),
         maxApiCalls: parseInt(process.env.UNAS_SYNC_MAX_API_CALLS || '50')
+      },
+      bulkConfig: {
+        batchSize: parseInt(process.env.UNAS_BULK_BATCH_SIZE || '20'),
+        maxProducts: parseInt(process.env.UNAS_BULK_MAX_PRODUCTS || '100'),
+        delayBetweenBatches: parseInt(process.env.UNAS_BULK_DELAY || '1000')
       }
     };
 

@@ -2,6 +2,7 @@ import * as cron from 'node-cron';
 import { UnasProductSyncService } from './UnasProductSyncService';
 import { UnasApiClient } from './UnasApiClient';
 import { IncrementalSyncService, IncrementalSyncResult, DEFAULT_INCREMENTAL_CONFIG } from './IncrementalSyncService';
+import { BulkImportService, BulkImportResult, DEFAULT_BULK_CONFIG } from './BulkImportService';
 
 export interface SyncSchedulerConfig {
   // Cron pattern (default: minden 6 órában)
@@ -16,6 +17,12 @@ export interface SyncSchedulerConfig {
   incrementalConfig: {
     batchSize: number;
     maxApiCalls: number;
+  };
+  // Bulk import konfiguráció
+  bulkConfig: {
+    batchSize: number;
+    maxProducts: number;
+    delayBetweenBatches: number;
   };
 }
 
@@ -33,6 +40,7 @@ export class SyncScheduler {
   private config: SyncSchedulerConfig;
   private syncService: UnasProductSyncService;
   private incrementalSyncService: IncrementalSyncService;
+  private bulkImportService: BulkImportService;
   private apiClient: UnasApiClient;
   private lastRunTime: Date | null = null;
   private runCount: number = 0;
@@ -53,6 +61,14 @@ export class SyncScheduler {
     this.incrementalSyncService = new IncrementalSyncService(this.apiClient, {
       batchSize: config.incrementalConfig.batchSize,
       maxApiCalls: config.incrementalConfig.maxApiCalls,
+      logLevel: config.logLevel
+    });
+    
+    // BulkImportService inicializálása
+    this.bulkImportService = new BulkImportService(this.apiClient, {
+      batchSize: config.bulkConfig.batchSize,
+      maxProducts: config.bulkConfig.maxProducts,
+      delayBetweenBatches: config.bulkConfig.delayBetweenBatches,
       logLevel: config.logLevel
     });
     
@@ -264,17 +280,17 @@ export class SyncScheduler {
   }
 
   /**
-   * Teljes szinkronizáció (placeholder - tömeges import lesz)
+   * Teljes szinkronizáció (tömeges import)
    */
   private async performFullSync(): Promise<any> {
-    this.log('info', 'Teljes szinkronizáció - még nem implementált');
+    this.log('info', 'Tömeges termék import indítása...');
     
-    // TODO: Implementálni a tömeges import funkcióban
+    const bulkResult = await this.bulkImportService.performBulkImport();
     const stats = await this.syncService.getSyncStats();
     
     return {
       type: 'full',
-      message: 'Teljes szinkronizáció még nem implementált',
+      result: bulkResult,
       stats: stats
     };
   }
@@ -301,5 +317,10 @@ export const DEFAULT_SYNC_CONFIG: SyncSchedulerConfig = {
   incrementalConfig: {
     batchSize: DEFAULT_INCREMENTAL_CONFIG.batchSize,
     maxApiCalls: DEFAULT_INCREMENTAL_CONFIG.maxApiCalls
+  },
+  bulkConfig: {
+    batchSize: DEFAULT_BULK_CONFIG.batchSize,
+    maxProducts: DEFAULT_BULK_CONFIG.maxProducts,
+    delayBetweenBatches: DEFAULT_BULK_CONFIG.delayBetweenBatches
   }
 };

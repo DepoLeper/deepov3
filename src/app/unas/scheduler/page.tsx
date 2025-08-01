@@ -29,6 +29,9 @@ export default function SchedulerPage() {
   const [syncMode, setSyncMode] = useState<'single' | 'incremental' | 'full'>('incremental');
   const [batchSize, setBatchSize] = useState(10);
   const [maxApiCalls, setMaxApiCalls] = useState(50);
+  const [bulkBatchSize, setBulkBatchSize] = useState(20);
+  const [maxProducts, setMaxProducts] = useState(100);
+  const [bulkDelay, setBulkDelay] = useState(1000);
 
   // Állapot betöltése
   const loadStatus = async () => {
@@ -103,6 +106,11 @@ export default function SchedulerPage() {
       incrementalConfig: {
         batchSize,
         maxApiCalls
+      },
+      bulkConfig: {
+        batchSize: bulkBatchSize,
+        maxProducts,
+        delayBetweenBatches: bulkDelay
       }
     });
   };
@@ -259,7 +267,7 @@ export default function SchedulerPage() {
             <strong>Módok:</strong>
             <br />• <strong>incremental</strong>: Csak változott termékek (gyors, ajánlott)
             <br />• <strong>single</strong>: Egy teszt termék (debug célra)
-            <br />• <strong>full</strong>: Összes termék (lassú, nagy adatmennyiség)
+            <br />• <strong>full</strong>: Tömeges import (lassú, nagy API használat)
           </div>
         </div>
       </div>
@@ -299,7 +307,7 @@ export default function SchedulerPage() {
             >
               <option value="incremental">🔄 Inkrementális (csak változott termékek)</option>
               <option value="single">🔍 Egyedi termék (teszt)</option>
-              <option value="full">📦 Teljes szinkronizáció (még nem implementált)</option>
+              <option value="full">📦 Tömeges import (összes termék)</option>
             </select>
           </div>
 
@@ -338,6 +346,68 @@ export default function SchedulerPage() {
                 />
                 <div className="text-xs text-blue-600 mt-1">
                   VIP csomag: max 6000 hívás/óra
+                </div>
+              </div>
+            </div>
+          )}
+
+          {syncMode === 'full' && (
+            <div className="space-y-4 p-4 bg-red-50 rounded-lg border border-red-200">
+              <h4 className="font-medium text-red-900">Tömeges Import beállítások</h4>
+              <div className="text-sm text-red-700 mb-3">
+                ⚠️ <strong>Figyelem:</strong> Nagy mennyiségű API hívást igényel!
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-red-700 mb-2">
+                  Batch méret: ({bulkBatchSize} termék/batch)
+                </label>
+                <input
+                  type="range"
+                  min="10"
+                  max="100"
+                  value={bulkBatchSize}
+                  onChange={(e) => setBulkBatchSize(parseInt(e.target.value))}
+                  className="w-full"
+                />
+                <div className="text-xs text-red-600 mt-1">
+                  Nagyobb érték = gyorsabb, de több API hívás
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-red-700 mb-2">
+                  Max termékek: ({maxProducts} termék)
+                </label>
+                <input
+                  type="range"
+                  min="50"
+                  max="1000"
+                  step="50"
+                  value={maxProducts}
+                  onChange={(e) => setMaxProducts(parseInt(e.target.value))}
+                  className="w-full"
+                />
+                <div className="text-xs text-red-600 mt-1">
+                  0 = összes termék (veszélyes!)
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-red-700 mb-2">
+                  Delay batch-ek között: ({bulkDelay}ms)
+                </label>
+                <input
+                  type="range"
+                  min="500"
+                  max="5000"
+                  step="100"
+                  value={bulkDelay}
+                  onChange={(e) => setBulkDelay(parseInt(e.target.value))}
+                  className="w-full"
+                />
+                <div className="text-xs text-red-600 mt-1">
+                  Rate limiting védelem (VIP: max 6000 hívás/óra)
                 </div>
               </div>
             </div>

@@ -214,6 +214,75 @@ export class UnasApiClient {
   }
 
   /**
+   * Termékek lista lekérése nagyobb limittel (bulk import célra)
+   */
+  async getProductList(limitNum: number = 50): Promise<UnasProductBasic[]> {
+    // Token ellenőrzés
+    if (!this.isTokenValid()) {
+      await this.login();
+    }
+
+    console.log(`📦 Termék lista lekérése (limit: ${limitNum})`);
+    
+    // XML építés lista lekéréshez
+    const params: any = {
+      StatusBase: '1',
+      State: 'live',
+      ContentType: 'minimal',
+      LimitNum: limitNum.toString()
+    };
+    
+    const xmlBody = `<?xml version="1.0" encoding="UTF-8"?><Params>${Object.entries(params).map(([k, v]) => `<${k}>${v}</${k}>`).join('')}</Params>`;
+    console.log('📤 Request XML:', xmlBody);
+    
+    try {
+      const response = await fetch(`${this.config.baseUrl}/getProduct`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/xml',
+          'Accept': 'application/xml',
+          'Authorization': `Bearer ${this.token}`
+        },
+        body: xmlBody
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP hiba: ${response.status} ${response.statusText}`);
+      }
+
+      const xmlText = await response.text();
+      console.log('📥 Response length:', xmlText.length);
+      
+      const parsed = this.xmlParser.parse(xmlText);
+      
+      if (parsed.Products && parsed.Products.Product) {
+        const products = Array.isArray(parsed.Products.Product) ? parsed.Products.Product : [parsed.Products.Product];
+        console.log(`✅ ${products.length} termék lekérve`);
+        
+        // Alapvető adatok kinyerése
+        const result: UnasProductBasic[] = products.map((p: any) => ({
+          id: p.Id,
+          sku: p.Sku?.__cdata || p.Sku || '',
+          name: p.Name?.__cdata || p.Name || '',
+          priceNet: parseFloat(p.PriceNet || '0'),
+          priceGross: parseFloat(p.PriceGross || '0'),
+          state: p.State || 'unknown',
+          lastModTime: p.LastModTime || null
+        }));
+        
+        return result;
+      } else {
+        console.log('⚠️ Nincs termék a válaszban');
+        return [];
+      }
+      
+    } catch (error) {
+      console.error('❌ getProductList hiba:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Termék lekérése - egyszerűsített verzió
    */
   async getProduct(productId?: string): Promise<UnasProductBasic | UnasProductBasic[]> {
