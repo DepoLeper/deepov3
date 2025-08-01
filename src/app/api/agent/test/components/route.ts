@@ -2,10 +2,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MemoryManager } from '@/lib/agent/MemoryManager';
 import { ContextLoader } from '@/lib/agent/ContextLoader';
 import { PersonalityEngine } from '@/lib/agent/PersonalityEngine';
-import { ToolManager } from '@/lib/agent/ToolManager';
 
 export async function POST(request: NextRequest) {
   try {
+    const { testType, userMessage } = await request.json();
+
+    // ÚJ: Personality Matching teszt
+    if (testType === 'personality-matching') {
+      const personalityEngine = new PersonalityEngine();
+      
+      // Javasolt személyiség (anélkül, hogy aktiválnánk)
+      const suggestedPersonality = await personalityEngine.suggestPersonality(userMessage);
+      
+      // Részletes matching információk
+      const matchingDetails = await personalityEngine.getPersonalityMatchDetails(userMessage);
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Personality Matching teszt sikeres',
+        data: {
+          suggestedPersonality: suggestedPersonality ? {
+            id: suggestedPersonality.id,
+            name: suggestedPersonality.name,
+            description: suggestedPersonality.description,
+            traits: suggestedPersonality.traits
+          } : null,
+          matchingDetails
+        }
+      });
+    }
     const { userId } = await request.json();
 
     if (!userId) {
@@ -19,8 +44,7 @@ export async function POST(request: NextRequest) {
     const testResults = {
       memoryManager: { success: false, message: '', data: null },
       contextLoader: { success: false, message: '', data: null },
-      personalityEngine: { success: false, message: '', data: null },
-      toolManager: { success: false, message: '', data: null }
+      personalityEngine: { success: false, message: '', data: null }
     };
 
     // Memory Manager teszt
@@ -101,36 +125,6 @@ export async function POST(request: NextRequest) {
       testResults.personalityEngine = {
         success: false,
         message: 'Personality Engine hiba',
-        data: { error: error instanceof Error ? error.message : 'Ismeretlen hiba' }
-      };
-    }
-
-    // Tool Manager teszt
-    try {
-      const toolManager = new ToolManager();
-      
-      // Elérhető eszközök lekérdezése
-      const availableTools = toolManager.getAvailableTools();
-      
-      // SEO elemzés teszt
-      const seoTestResult = await toolManager.useTool('seo_analyzer', {
-        text: 'Ez egy teszt blog cikk a munkavédelemről. A munkavédelem nagyon fontos. Minden munkavállalónak viselnie kell védőeszközt.',
-        keywords: ['munkavédelem', 'védőeszköz']
-      });
-      
-      testResults.toolManager = {
-        success: true,
-        message: 'Tool Manager működik',
-        data: {
-          availableTools: availableTools.length,
-          tools: availableTools.map(t => ({ id: t.id, name: t.name })),
-          seoTestResult: seoTestResult.success ? seoTestResult.data : null
-        }
-      };
-    } catch (error) {
-      testResults.toolManager = {
-        success: false,
-        message: 'Tool Manager hiba',
         data: { error: error instanceof Error ? error.message : 'Ismeretlen hiba' }
       };
     }

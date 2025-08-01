@@ -44,6 +44,40 @@ export default function AgentTestPage() {
     }
   };
 
+  const runPersonalityMatchingTest = async () => {
+    if (!testMessage.trim()) {
+      alert('Kérlek írj be egy üzenetet a személyiség matching teszthez!');
+      return;
+    }
+
+    setIsLoading(true);
+    setTestResult(null);
+
+    try {
+      const response = await fetch('/api/agent/test/components', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          testType: 'personality-matching',
+          userMessage: testMessage
+        }),
+      });
+
+      const result = await response.json();
+      setTestResult(result);
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: 'Personality Matching teszt sikertelen',
+        error: error instanceof Error ? error.message : 'Ismeretlen hiba'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const runComponentTests = async () => {
     setIsLoading(true);
     setTestResult(null);
@@ -214,6 +248,14 @@ export default function AgentTestPage() {
               >
                 {isLoading ? 'Tesztelés...' : '🔧 Komponens Tesztek'}
               </button>
+              
+              <button
+                onClick={runPersonalityMatchingTest}
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-lg font-medium hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                {isLoading ? 'Tesztelés...' : '🎭 Személyiség Matching'}
+              </button>
             </div>
           </div>
         </div>
@@ -299,6 +341,44 @@ export default function AgentTestPage() {
               {testResult.data && (
                 <div className="bg-gray-800/50 rounded-lg p-4">
                   <h3 className="text-lg font-medium text-white mb-2">Részletes eredmények:</h3>
+                  
+                  {/* Speciális megjelenítés Personality Matching-hez */}
+                  {testResult.data.suggestedPersonality && (
+                    <div className="mb-4 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
+                      <h4 className="text-lg font-semibold text-blue-300 mb-2">🎯 Ajánlott Személyiség:</h4>
+                      <div className="space-y-2">
+                        <p className="text-white"><strong>{testResult.data.suggestedPersonality.name}</strong></p>
+                        <p className="text-gray-300 text-sm">{testResult.data.suggestedPersonality.description}</p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {Object.entries(testResult.data.suggestedPersonality.traits).map(([key, value]) => (
+                            <span key={key} className="px-2 py-1 bg-blue-600/30 text-blue-200 text-xs rounded">
+                              {key}: {value}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Matching pontszámok */}
+                  {testResult.data.matchingDetails && (
+                    <div className="mb-4 p-4 bg-purple-500/20 border border-purple-500/50 rounded-lg">
+                      <h4 className="text-lg font-semibold text-purple-300 mb-2">📊 Matching Pontszámok:</h4>
+                      <div className="space-y-2">
+                        {testResult.data.matchingDetails.personalities.slice(0, 5).map((personality: any, index: number) => (
+                          <div key={personality.id} className="flex justify-between items-center p-2 bg-gray-700/50 rounded">
+                            <span className="text-white">
+                              #{index + 1} {personality.name}
+                            </span>
+                            <span className={`font-bold ${index === 0 ? 'text-green-400' : 'text-gray-400'}`}>
+                              {personality.score} pont
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <pre className="text-sm text-gray-300 whitespace-pre-wrap overflow-x-auto">
                     {JSON.stringify(testResult.data, null, 2)}
                   </pre>

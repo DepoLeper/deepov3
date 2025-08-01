@@ -4,12 +4,28 @@ import { useState, useRef, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 
+interface PersonalityInfo {
+  id: string;
+  name: string;
+  description: string;
+  traits: {
+    tone: string;
+    formality: string;
+    enthusiasm: string;
+    creativity: string;
+    technicality: string;
+  };
+  matchingScore: number;
+  reason: string;
+}
+
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   suggestions?: string[];
+  personality?: PersonalityInfo;
 }
 
 export default function ChatPage() {
@@ -90,7 +106,8 @@ export default function ChatPage() {
         role: 'assistant',
         content: data.response,
         timestamp: new Date(),
-        suggestions: data.suggestions
+        suggestions: data.suggestions,
+        personality: data.metadata?.personality || null
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -176,6 +193,34 @@ export default function ChatPage() {
                               {suggestion}
                             </button>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Personality Info */}
+                      {message.role === 'assistant' && message.personality && (
+                        <div className="mt-3 p-3 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-purple-800">
+                              🎭 {message.personality.name}
+                            </span>
+                            <span className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
+                              {message.personality.matchingScore} pont
+                            </span>
+                          </div>
+                          <div className="text-xs text-purple-700 mb-2">
+                            {message.personality.description}
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {Object.entries(message.personality.traits).map(([key, value]) => (
+                              <span key={key} className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                                {key}: {value}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="text-xs text-purple-600 mt-2 italic">
+                            💡 {message.personality.reason}
+                          </div>
                         </div>
                       )}
 

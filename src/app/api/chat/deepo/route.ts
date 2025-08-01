@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { SimpleHybridController } from '@/lib/hybrid/SimpleHybridController';
+import { PersonalityEngine } from '@/lib/agent/PersonalityEngine';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -73,6 +74,37 @@ export async function POST(request: NextRequest) {
     
     console.log(`🎯 Végleges actualUserId: ${actualUserId}`);
 
+    // ======== INTELLIGENS SZEMÉLYISÉGVÁLTÁS ========
+    let personalityInfo = null;
+    try {
+      const personalityEngine = new PersonalityEngine();
+      
+      console.log(`🎭 Intelligens személyiség kiválasztás - üzenet: "${message}"`);
+      
+      const personalityResult = await personalityEngine.autoSelectPersonality(message);
+      
+      if (personalityResult.selectedPersonality) {
+        personalityInfo = {
+          id: personalityResult.selectedPersonality.id,
+          name: personalityResult.selectedPersonality.name,
+          description: personalityResult.selectedPersonality.description,
+          traits: personalityResult.selectedPersonality.traits,
+          matchingScore: personalityResult.matchingScore,
+          reason: personalityResult.reason
+        };
+        
+        console.log(`✅ Személyiség kiválasztva: ${personalityResult.selectedPersonality.name} (${personalityResult.matchingScore} pont)`);
+        console.log(`📝 Indoklás: ${personalityResult.reason}`);
+      } else {
+        console.log(`⚠️ Nincs megfelelő személyiség, marad az alapértelmezett`);
+      }
+      
+      await personalityEngine.cleanup();
+    } catch (personalityError) {
+      console.error('🚨 Személyiségváltás hiba:', personalityError);
+      // Folytatjuk alapértelmezett személyiséggel
+    }
+
     // SimpleHybridController v5.0 használata (Persistent Memory + Unas API)
     const hybridController = new SimpleHybridController();
     const result = await hybridController.processMessage(
@@ -81,11 +113,14 @@ export async function POST(request: NextRequest) {
       message
     );
 
-    // Válasz visszaküldése
+    // Válasz visszaküldése (kiegészítve személyiség információval)
     return NextResponse.json({
       response: result.response,
       confidence: result.confidence,
-      metadata: result.metadata
+      metadata: {
+        ...result.metadata,
+        personality: personalityInfo  // ÚJ: Kiválasztott személyiség info
+      }
     });
 
   } catch (error) {

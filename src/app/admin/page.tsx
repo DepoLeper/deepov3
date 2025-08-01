@@ -202,6 +202,25 @@ export default function AdminPage() {
           </Link>
         </div>
 
+        {/* Personality Management */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center mb-4">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+            </div>
+            <h3 className="ml-3 text-lg font-semibold text-gray-900">🎭 Személyiségek</h3>
+          </div>
+          <p className="text-gray-600 mb-4">AI személyiségek kezelése és konfigurálása.</p>
+          <Link
+            href="/admin/personalities"
+            className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+          >
+            Personality Manager →
+          </Link>
+        </div>
+
         {/* Agent Testing */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center mb-4">
