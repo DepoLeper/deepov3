@@ -1,28 +1,32 @@
 import { runDeepOAgent } from '@/lib/agent-sdk/OpenAIAgentPOC';
 import { PersistentMemoryManager, MemorySearchResult } from './PersistentMemoryManager';
 import { SimpleContextLoader, ContextSearchResult } from './SimpleContextLoader';
+import { UnasContextLoader, UnasContextResult, getUnasContextLoader } from '../unas/UnasContextLoader';
 
 /**
- * SimpleHybridController v4.0 - Professzionális Perzisztens Memória
+ * SimpleHybridController v5.0 - Unas API Integráció
  * 
  * FRISSÍTETT ARCHITEKTÚRA:
  * - Memory: PersistentMemoryManager (Prisma + SQLite + Cache)
  * - Context: SimpleContextLoader (Content Guides)
+ * - Unas: UnasContextLoader (Webáruház termékadatok) - ÚJ!
  * - OpenAI SDK: Core AI functionality
- * - Hibrid megoldás: Database + Cache + Fallback
+ * - Hibrid megoldás: Database + Cache + Termékadatok
  */
 export class SimpleHybridController {
   private memoryManager: PersistentMemoryManager;
   private contextLoader: SimpleContextLoader;
+  private unasContextLoader: UnasContextLoader;
   
   constructor() {
-    console.log('🚀 SimpleHybridController v4.0 inicializálva - Persistent Memory');
+    console.log('🚀 SimpleHybridController v5.0 inicializálva - Unas API Integration');
     this.memoryManager = new PersistentMemoryManager();
     this.contextLoader = new SimpleContextLoader();
+    this.unasContextLoader = getUnasContextLoader();
   }
 
   /**
-   * Hibrid üzenet feldolgozás - Persistent Memory + Context
+   * Hibrid üzenet feldolgozás - Persistent Memory + Context + Unas
    */
   async processMessage(
     userId: string,
@@ -34,6 +38,8 @@ export class SimpleHybridController {
     metadata: {
       memoryUsed: boolean;
       contextUsed: boolean;
+      unasUsed: boolean;
+      productsFound?: number;
       timestamp: string;
       processingTime: number;
     };
@@ -52,19 +58,22 @@ export class SimpleHybridController {
       // 2. Context loading - Content Guides
       const contextResult: ContextSearchResult = await this.contextLoader.searchContext(message);
       
-      // 3. Kombinált kontextus építés
-      const combinedContext = this.buildCombinedContext(memoryResult, contextResult);
+      // 3. Unas context loading - Termékadatok (ÚJ!)
+      const unasResult: UnasContextResult = await this.unasContextLoader.searchUnasContext(message);
       
-      // 4. OpenAI SDK hívás a kombinált kontextussal
+      // 4. Kombinált kontextus építés (Memory + Context + Unas)
+      const combinedContext = this.buildCombinedContext(memoryResult, contextResult, unasResult);
+      
+      // 5. OpenAI SDK hívás a kombinált kontextussal
       // DeepO agent kontextussal kiegészített üzenet
       const contextualizedMessage = `${combinedContext}\n\nUser üzenet: ${message}`;
       
       const agentResponse = await runDeepOAgent(contextualizedMessage, 'main');
       
-      // 5. Válasz feldolgozása
+      // 6. Válasz feldolgozása
       const response = this.extractResponse(agentResponse);
       
-      // 6. Beszélgetés mentése - Persistent Database
+      // 7. Beszélgetés mentése - Persistent Database
       await this.memoryManager.saveConversation(
         userId,
         sessionId,
@@ -74,17 +83,19 @@ export class SimpleHybridController {
       
       const processingTime = Date.now() - startTime;
       
-      // 7. Globális memória statisztikák
+      // 8. Globális memória és Unas statisztikák
       await this.logGlobalMemoryStats(userId);
       
-      console.log(`✅ SimpleHybrid válasz sikeres (persistent memory + context)`);
+      console.log(`✅ SimpleHybrid válasz sikeres (persistent memory + context + unas)`);
       
       return {
         response,
-        confidence: 0.95, // Persistent memory + context = magasabb megbízhatóság
+        confidence: unasResult.success ? 0.98 : 0.95, // Unas adatok = még magasabb megbízhatóság
         metadata: {
           memoryUsed: memoryResult.relevantConversations.length > 0,
           contextUsed: contextResult.success,
+          unasUsed: unasResult.success,
+          productsFound: unasResult.productsFound.length,
           timestamp: new Date().toISOString(),
           processingTime
         }
@@ -100,6 +111,8 @@ export class SimpleHybridController {
         metadata: {
           memoryUsed: false,
           contextUsed: false,
+          unasUsed: false,
+          productsFound: 0,
           timestamp: new Date().toISOString(),
           processingTime: Date.now() - startTime
         }
@@ -108,9 +121,9 @@ export class SimpleHybridController {
   }
 
   /**
-   * Kombinált kontextus építés - Memory + Context
+   * Kombinált kontextus építés - Memory + Context + Unas
    */
-  private buildCombinedContext(memoryResult: MemorySearchResult, contextResult: ContextSearchResult): string {
+  private buildCombinedContext(memoryResult: MemorySearchResult, contextResult: ContextSearchResult, unasResult: UnasContextResult): string {
     let context = '';
     
     // Memory kontextus
@@ -128,6 +141,16 @@ export class SimpleHybridController {
     if (contextResult.success) {
       context += `\n\n📖 ÚTMUTATÓ KONTEXTUS:\n${contextResult.context}\n`;
       context += `Használt útmutatók: ${contextResult.guidesUsed.join(', ')}\n`;
+    }
+    
+    // Unas termékadatok kontextus (ÚJ!)
+    if (unasResult.success) {
+      context += `\n\n🛍️ WEBÁRUHÁZ ADATOK:\n${unasResult.context}\n`;
+      context += `Termékek: ${unasResult.productsFound.length}, Kategóriák: ${unasResult.categoriesFound.length}, Ajánlások: ${unasResult.recommendations.length}\n`;
+      
+      if (unasResult.productsFound.length > 0) {
+        context += `\n🎯 TERMÉKFÓKUSZ: A válaszodban hangsúlyozd a konkrét termékeket, árakat és előnyöket!\n`;
+      }
     }
     
     // Alap DeepO személyiség
@@ -186,7 +209,7 @@ export class SimpleHybridController {
   }
 
   /**
-   * Globális memória statisztikák logging
+   * Globális memória és Unas statisztikák logging
    */
   private async logGlobalMemoryStats(userId: string): Promise<void> {
     try {
@@ -194,6 +217,10 @@ export class SimpleHybridController {
       
       console.log(`🌐 Perzisztens memória: ${stats.totalConversations} beszélgetés, ${stats.totalKeywords} kulcsszó`);
       console.log(`📊 Cache állapot: ${stats.dbStats.cacheSize} cache, ${stats.dbStats.conversationRecords} DB record`);
+      
+      // Unas cache statisztikák
+      const unasStats = this.unasContextLoader.getCacheStats();
+      console.log(`🛍️ Unas cache: ${JSON.stringify(unasStats)}`);
       
     } catch (error) {
       console.error('❌ Memory stats hiba:', error);

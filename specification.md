@@ -69,7 +69,7 @@ AgentMemory:
 - **In-memory Map** - `Map<string, ConversationEntry[]>`
 - **5 perc expiry** - Automatikus cache refresh
 - **Fallback rendszer** - Cache-only mode DB hiba esetén
-- **Memory limit** - 100 beszélgetés/user
+- **Memory limit** - 500 beszélgetés/user
 
 #### **Hibrid Workflow**
 1. **Cache Check** - Gyors memory lookup
