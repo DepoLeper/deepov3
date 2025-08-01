@@ -120,11 +120,11 @@ Ez a dokumentum a DeepO intelligens marketing asszisztens fejlesztési lépései
 - [x] **Adatbázis perzisztálás - Prisma séma bővítése**
 - [x] **Termék mentés és frissítés logika**
 - [x] **Időzített szinkronizáció (cron job)**
-- [ ] **Inkrementális frissítés (változás detektálás)**
+- [x] **Inkrementális frissítés (változás detektálás)**
 - [ ] **Tömeges termék import**
 
-**Eredmény:** UnasApiClient v1.0, Product Viewer UI, valós akciós ár felismerés, DB perzisztálás, SyncScheduler v1.0
-**Státusz:** **IDŐZÍTETT SZINKRONIZÁCIÓ COMPLETE**
+**Eredmény:** UnasApiClient v1.0, Product Viewer UI, valós akciós ár felismerés, DB perzisztálás, SyncScheduler v1.0, IncrementalSyncService v1.0
+**Státusz:** **INKREMENTÁLIS SZINKRONIZÁCIÓ COMPLETE**
 
 ---
 

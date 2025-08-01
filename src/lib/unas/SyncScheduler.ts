@@ -1,6 +1,7 @@
 import * as cron from 'node-cron';
 import { UnasProductSyncService } from './UnasProductSyncService';
 import { UnasApiClient } from './UnasApiClient';
+import { IncrementalSyncService, IncrementalSyncResult, DEFAULT_INCREMENTAL_CONFIG } from './IncrementalSyncService';
 
 export interface SyncSchedulerConfig {
   // Cron pattern (default: minden 6 órában)
@@ -9,6 +10,13 @@ export interface SyncSchedulerConfig {
   enabled: boolean;
   // Logolás szintje
   logLevel: 'info' | 'debug' | 'error';
+  // Szinkronizációs mód: 'single' | 'incremental' | 'full'
+  syncMode: 'single' | 'incremental' | 'full';
+  // Inkrementális konfiguráció
+  incrementalConfig: {
+    batchSize: number;
+    maxApiCalls: number;
+  };
 }
 
 export interface SyncSchedulerStatus {
@@ -24,6 +32,7 @@ export class SyncScheduler {
   private task: cron.ScheduledTask | null = null;
   private config: SyncSchedulerConfig;
   private syncService: UnasProductSyncService;
+  private incrementalSyncService: IncrementalSyncService;
   private apiClient: UnasApiClient;
   private lastRunTime: Date | null = null;
   private runCount: number = 0;
@@ -40,7 +49,14 @@ export class SyncScheduler {
     // SyncService inicializálása az API client-tel
     this.syncService = new UnasProductSyncService(this.apiClient);
     
-    this.log('info', `SyncScheduler inicializálva: ${config.cronPattern}`);
+    // IncrementalSyncService inicializálása
+    this.incrementalSyncService = new IncrementalSyncService(this.apiClient, {
+      batchSize: config.incrementalConfig.batchSize,
+      maxApiCalls: config.incrementalConfig.maxApiCalls,
+      logLevel: config.logLevel
+    });
+    
+    this.log('info', `SyncScheduler inicializálva: ${config.cronPattern} (mód: ${config.syncMode})`);
   }
 
   /**
@@ -196,18 +212,69 @@ export class SyncScheduler {
    * Belső metódus: tényleges szinkronizációs logika
    */
   private async performSync(): Promise<any> {
-    // Itt a konkrét szinkronizációs stratégiát implementáljuk
-    // Kezdetben csak egy teszt termék szinkronizálása
-    const testProductId = '1303516158';
+    this.log('info', `Szinkronizáció indítása (mód: ${this.config.syncMode})`);
     
-    this.log('debug', `Szinkronizáció indítása termék ID: ${testProductId}`);
-    const result = await this.syncService.syncSingleProduct(testProductId);
+    switch (this.config.syncMode) {
+      case 'incremental':
+        return await this.performIncrementalSync();
+      
+      case 'single':
+        return await this.performSingleProductSync();
+      
+      case 'full':
+        return await this.performFullSync();
+      
+      default:
+        this.log('error', `Ismeretlen szinkronizációs mód: ${this.config.syncMode}`);
+        throw new Error(`Ismeretlen szinkronizációs mód: ${this.config.syncMode}`);
+    }
+  }
+
+  /**
+   * Inkrementális szinkronizáció végrehajtása
+   */
+  private async performIncrementalSync(): Promise<any> {
+    this.log('info', 'Inkrementális szinkronizáció indítása...');
     
-    // Statisztikák lekérése
+    const incrementalResult = await this.incrementalSyncService.performIncrementalSync();
     const stats = await this.syncService.getSyncStats();
     
     return {
+      type: 'incremental',
+      result: incrementalResult,
+      stats: stats
+    };
+  }
+
+  /**
+   * Egyedi termék szinkronizáció (korábbi alapértelmezett)
+   */
+  private async performSingleProductSync(): Promise<any> {
+    const testProductId = '1303516158';
+    
+    this.log('debug', `Egyedi termék szinkronizáció: ${testProductId}`);
+    const result = await this.syncService.syncSingleProduct(testProductId);
+    const stats = await this.syncService.getSyncStats();
+    
+    return {
+      type: 'single',
       product: result,
+      stats: stats
+    };
+  }
+
+  /**
+   * Teljes szinkronizáció (placeholder - tömeges import lesz)
+   */
+  private async performFullSync(): Promise<any> {
+    this.log('info', 'Teljes szinkronizáció - még nem implementált');
+    
+    // TODO: Implementálni a tömeges import funkcióban
+    const stats = await this.syncService.getSyncStats();
+    
+    return {
+      type: 'full',
+      message: 'Teljes szinkronizáció még nem implementált',
       stats: stats
     };
   }
@@ -229,5 +296,10 @@ export class SyncScheduler {
 export const DEFAULT_SYNC_CONFIG: SyncSchedulerConfig = {
   cronPattern: '0 */6 * * *', // Minden 6 órában
   enabled: true,
-  logLevel: 'info'
+  logLevel: 'info',
+  syncMode: 'incremental', // Alapértelmezetten inkrementális
+  incrementalConfig: {
+    batchSize: DEFAULT_INCREMENTAL_CONFIG.batchSize,
+    maxApiCalls: DEFAULT_INCREMENTAL_CONFIG.maxApiCalls
+  }
 };

@@ -26,6 +26,9 @@ export default function SchedulerPage() {
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
   const [cronPattern, setCronPattern] = useState('0 */6 * * *');
   const [enabled, setEnabled] = useState(true);
+  const [syncMode, setSyncMode] = useState<'single' | 'incremental' | 'full'>('incremental');
+  const [batchSize, setBatchSize] = useState(10);
+  const [maxApiCalls, setMaxApiCalls] = useState(50);
 
   // Állapot betöltése
   const loadStatus = async () => {
@@ -95,7 +98,12 @@ export default function SchedulerPage() {
     executeAction('update-config', {
       cronPattern,
       enabled,
-      logLevel: 'info'
+      logLevel: 'info',
+      syncMode,
+      incrementalConfig: {
+        batchSize,
+        maxApiCalls
+      }
     });
   };
 
@@ -235,7 +243,7 @@ export default function SchedulerPage() {
           </button>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
           <button
             onClick={() => executeAction('manual-sync')}
             disabled={loading}
@@ -244,8 +252,15 @@ export default function SchedulerPage() {
             🚀 Azonnali szinkronizáció
           </button>
           <span className="ml-3 text-sm text-gray-600">
-            (Cron job-tól függetlenül)
+            (Aktuális mód szerint: {syncMode})
           </span>
+          
+          <div className="text-sm text-gray-500 mt-2">
+            <strong>Módok:</strong>
+            <br />• <strong>incremental</strong>: Csak változott termékek (gyors, ajánlott)
+            <br />• <strong>single</strong>: Egy teszt termék (debug célra)
+            <br />• <strong>full</strong>: Összes termék (lassú, nagy adatmennyiség)
+          </div>
         </div>
       </div>
 
@@ -272,6 +287,61 @@ export default function SchedulerPage() {
               <option value="0 8 * * *">Naponta 8:00-kor (0 8 * * *)</option>
             </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Szinkronizációs mód:
+            </label>
+            <select
+              value={syncMode}
+              onChange={(e) => setSyncMode(e.target.value as 'single' | 'incremental' | 'full')}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="incremental">🔄 Inkrementális (csak változott termékek)</option>
+              <option value="single">🔍 Egyedi termék (teszt)</option>
+              <option value="full">📦 Teljes szinkronizáció (még nem implementált)</option>
+            </select>
+          </div>
+
+          {syncMode === 'incremental' && (
+            <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-900">Inkrementális beállítások</h4>
+              
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-2">
+                  Batch méret: ({batchSize} termék/batch)
+                </label>
+                <input
+                  type="range"
+                  min="5"
+                  max="50"
+                  value={batchSize}
+                  onChange={(e) => setBatchSize(parseInt(e.target.value))}
+                  className="w-full"
+                />
+                <div className="text-xs text-blue-600 mt-1">
+                  Kisebb érték = kevesebb API hívás, nagyobb érték = gyorsabb
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-2">
+                  Max API hívások: ({maxApiCalls} hívás/szinkronizáció)
+                </label>
+                <input
+                  type="range"
+                  min="10"
+                  max="200"
+                  value={maxApiCalls}
+                  onChange={(e) => setMaxApiCalls(parseInt(e.target.value))}
+                  className="w-full"
+                />
+                <div className="text-xs text-blue-600 mt-1">
+                  VIP csomag: max 6000 hívás/óra
+                </div>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="flex items-center">

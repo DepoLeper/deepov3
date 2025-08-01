@@ -13,7 +13,12 @@ function getScheduler(): SyncScheduler {
     const config: SyncSchedulerConfig = {
       cronPattern: process.env.UNAS_SYNC_CRON_PATTERN || DEFAULT_SYNC_CONFIG.cronPattern,
       enabled: process.env.UNAS_SYNC_ENABLED !== 'false', // Default: true
-      logLevel: (process.env.UNAS_SYNC_LOG_LEVEL as 'info' | 'debug' | 'error') || DEFAULT_SYNC_CONFIG.logLevel
+      logLevel: (process.env.UNAS_SYNC_LOG_LEVEL as 'info' | 'debug' | 'error') || DEFAULT_SYNC_CONFIG.logLevel,
+      syncMode: (process.env.UNAS_SYNC_MODE as 'single' | 'incremental' | 'full') || DEFAULT_SYNC_CONFIG.syncMode,
+      incrementalConfig: {
+        batchSize: parseInt(process.env.UNAS_SYNC_BATCH_SIZE || '10'),
+        maxApiCalls: parseInt(process.env.UNAS_SYNC_MAX_API_CALLS || '50')
+      }
     };
 
     globalScheduler = new SyncScheduler(config);
